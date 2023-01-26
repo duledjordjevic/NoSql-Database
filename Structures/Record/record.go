@@ -1,4 +1,4 @@
-package record
+package Record
 
 import (
 	"encoding/binary"
@@ -7,13 +7,12 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"time"
 )
 
 /*
    +---------------+-----------------+---------------+---------------+-----------------+-...-+--...--+
-   |    CRC (4B)   | Timestamp (8B)  | Tombstone(1B) | Key Size (8B) | Value Size (8B) | Key | Value |
+   |    CRC (4B)   | Timestamp (8B) | Tombstone(1B) | Key Size (8B) | Value Size (8B) | Key | Value |
    +---------------+-----------------+---------------+---------------+-----------------+-...-+--...--+
    CRC = 32bit hash computed over the payload using CRC
    Key Size = Length of the Key data
@@ -112,22 +111,111 @@ func (rec *Record) GreaterThan(other *Record) bool {
 
 func (rec *Record) String() string {
 	str := " "
-	str += strconv.FormatUint(uint64(rec.GetCRC()), 10) + " "
-	str += strconv.FormatUint((rec.GetTimeStamp()), 10) + " "
-	str += strconv.FormatInt(int64(rec.GetTombStone()), 10) + " "
-	str += strconv.FormatUint((rec.GetKeySize()), 10) + " "
-	str += strconv.FormatUint((rec.GetValueSize()), 10) + " "
+	str += string(rec.GetCRC()) + " "
+	str += string(rec.GetTimeStamp()) + " "
+	str += string(rec.GetTombStone()) + " "
+	str += string(rec.GetKeySize()) + " "
+	str += string(rec.GetValueSize()) + " "
 	str += rec.GetKey() + " "
-	for _, v := range rec.GetValue() {
-		str += strconv.Itoa(int(v))
-	}
-	str += " "
+	str += string(rec.GetValue())
 	return str
 }
 
-// read funckije citaju direktno iz fajla samo deo record-a
+// NEMA POTREBE ZA SEEKOM AKO CES CITATI REDOM JEDAN PO JEDAN OD POCETKA SAMO PUSTIS U PETLJU
+// DA CITA DO KRAJA I POZIVAS U SVAKOJ ITERACIJI READRECORD
+// PRILIKOM SVAKOG CITANJA SAM SE POMERA NA NAREDNI
+func ReadRecord(file *os.File) (*Record, error) {
+	bytes := make([]byte, CRC_SIZE+TIMESTAMP_SIZE+TOMBSTONE_SIZE+KEY_SIZE_SIZE+VALUE_SIZE_SIZE)
+	// citanje zaglavlja -> od CRC-a do pocetka kljuca
+	_, err := io.ReadAtLeast(file, bytes, CRC_SIZE+TIMESTAMP_SIZE+TOMBSTONE_SIZE+KEY_SIZE_SIZE+VALUE_SIZE_SIZE)
+	if err != nil {
+		//fmt.Println("Greska kod citanja Header-a")
+		//log.Fatal(err)
+		return nil, err
+	}
+	// konvertovanje velicine kljuca i velicine vrednosti u brojeve
+	keySize := binary.BigEndian.Uint64(bytes[KEY_SIZE_START:VALUE_SIZE_START])
+	valueSize := binary.BigEndian.Uint64(bytes[VALUE_SIZE_START:KEY_START])
+
+	// citanje kljuca i vrednosti
+	bytes = append(bytes, ReadKey(file, keySize)...)
+	bytes = append(bytes, ReadValue(file, valueSize)...)
+
+	// nad objektom mozes koristiti sve one get-ere
+	rec := NewRecordByte(bytes)
+	return rec, nil
+}
+
+// FUNKCIJE VRACAJU NIZ BAJTOVA
+func ReadCRCBytes(file *os.File) []byte {
+	bytes := make([]byte, CRC_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, CRC_SIZE)
+	if err != nil {
+		fmt.Println("Greska kod citanja CRC-a")
+		log.Fatal(err)
+	}
+
+	return bytes
+}
+func ReadTimestampBytes(file *os.File) []byte {
+	bytes := make([]byte, TIMESTAMP_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, TIMESTAMP_SIZE)
+	if err != nil {
+		fmt.Println("Greska kod citanja TimeStamp-a")
+		log.Fatal(err)
+	}
+	return bytes
+}
+func ReadTombstoneBytes(file *os.File) []byte {
+	bytes := make([]byte, TOMBSTONE_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, TOMBSTONE_SIZE)
+	if err != nil {
+		fmt.Println("Greska kod citanja TombStone-a")
+		log.Fatal(err)
+	}
+	return bytes
+}
+func ReadKeySizeBytes(file *os.File) []byte {
+	bytes := make([]byte, KEY_SIZE_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, KEY_SIZE_SIZE)
+	if err != nil {
+		fmt.Println("Greska kod citanja KeySize-a")
+		log.Fatal(err)
+	}
+	return bytes
+}
+func ReadValueSizeBytes(file *os.File) []byte {
+	bytes := make([]byte, VALUE_SIZE_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, VALUE_SIZE_SIZE)
+	if err != nil {
+		fmt.Println("Greska kod citanja ValueSize-a")
+		log.Fatal(err)
+	}
+	return bytes
+}
+func ReadKeyBytes(file *os.File, keySize uint64) []byte {
+	bytes := make([]byte, keySize)
+	_, err := io.ReadAtLeast(file, bytes, int(keySize))
+	if err != nil {
+		fmt.Println("Greska kod citanja Key-a")
+		log.Fatal(err)
+	}
+	return bytes
+}
+
+func ReadValueBytes(file *os.File, valueSize uint64) []byte {
+	bytes := make([]byte, valueSize)
+	_, err := io.ReadAtLeast(file, bytes, int(valueSize))
+	if err != nil {
+		fmt.Println("Greska kod citanja Value-a")
+		log.Fatal(err)
+	}
+
+	return bytes
+}
 
 // POZICIONIRANJE NA ZADATU LOKACIJU JE OCEKIVANO
+// FUNKCIJE VRACAJU BROJEVE/STRINGOVE KAO PODATKE
 func ReadCRC(file *os.File) uint32 {
 	bytes := make([]byte, CRC_SIZE)
 	_, err := io.ReadAtLeast(file, bytes, CRC_SIZE)
