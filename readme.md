@@ -1,6 +1,11 @@
-# radee rade rade -> ovo treba da se konfliktuje 
+# PROJEKAT NAPREDNI ALGORITMI I STRUKTURE PODATAKA
 
-# hello
+Ucesnici: 
+    Nikola Trajković - trajce 
+    Nikola Marić - maric
+    Dušan Đorđević - dusan
+    Stefan Pejinović - stefan
+    Rade Pejanović - rade
 
-# new Branch
-# KONFLIKT
+PRAVILA:
+    CamelCase notacija
