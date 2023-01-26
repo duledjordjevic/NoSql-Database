@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -111,13 +112,16 @@ func (rec *Record) GreaterThan(other *Record) bool {
 
 func (rec *Record) String() string {
 	str := " "
-	str += string(rec.GetCRC()) + " "
-	str += string(rec.GetTimeStamp()) + " "
-	str += string(rec.GetTombStone()) + " "
-	str += string(rec.GetKeySize()) + " "
-	str += string(rec.GetValueSize()) + " "
+	str += strconv.FormatUint(uint64(rec.GetCRC()), 10) + " "
+	str += strconv.FormatUint((rec.GetTimeStamp()), 10) + " "
+	str += strconv.FormatInt(int64(rec.GetTombStone()), 10) + " "
+	str += strconv.FormatUint((rec.GetKeySize()), 10) + " "
+	str += strconv.FormatUint((rec.GetValueSize()), 10) + " "
 	str += rec.GetKey() + " "
-	str += string(rec.GetValue())
+	for _, v := range rec.GetValue() {
+		str += strconv.Itoa(int(v))
+	}
+	str += " "
 	return str
 }
 
