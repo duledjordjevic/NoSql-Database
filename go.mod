@@ -1,3 +1,3 @@
-module napredni
+module NAiSP
 
 go 1.19
