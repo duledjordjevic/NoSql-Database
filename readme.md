@@ -1,5 +1,6 @@
-#Hi
+# radee rade rade -> ovo treba da se konfliktuje 
 
-#hello
+# hello
 
-#new Branch
+# new Branch
+# KONFLIKT
