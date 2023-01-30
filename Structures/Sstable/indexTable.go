@@ -85,6 +85,26 @@ func getOffsetForKey(dataFilePath string, key string) (uint64, bool) {
 	}
 
 }
+func getOffsetForIndexKey(IndexTablePath string, key string) (uint64, bool) {
+	file, err := os.Open(IndexTablePath)
+	if err != nil {
+		return 0, false
+	}
+
+	defer file.Close()
+	current := uint64(0)
+	for {
+		recordOff, err := ReadIndexRecord(file)
+		if err != nil {
+			return 0, false
+		}
+		if recordOff.GetKey() == key {
+			return current, true
+		}
+		current += recordOff.GetSize()
+
+	}
+}
 func ReadOffset(file *os.File, keySize uint64) uint64 {
 	bytes := make([]byte, 8)
 	_, err := io.ReadAtLeast(file, bytes, 8)
