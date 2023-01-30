@@ -1,4 +1,4 @@
-package Record
+package record
 
 import (
 	"encoding/binary"
@@ -95,6 +95,9 @@ func (rec *Record) GetValue() []byte {
 	return rec.Data[KEY_START+keySize:]
 }
 
+func (rec *Record) GetSize() uint64 {
+	return uint64(4 + 8 + 1 + 8 + 8 + rec.GetKeySize() + rec.GetValueSize())
+}
 func (rec *Record) CheckCRC() bool {
 	CRC := rec.GetCRC()
 	if CRC == CRC32(rec.Data[KEY_START:]) {
