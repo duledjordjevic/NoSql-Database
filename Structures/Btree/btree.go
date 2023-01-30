@@ -63,7 +63,6 @@ func (bTree *BTree) Search(key string) *Node {
 	tf := true
 	for tf {
 		indexChild := 0
-		// fmt.Println(currentNode)
 		for i := 0; i < currentNode.n; i++ {
 			if currentNode.Keys[i].GetKey() == key {
 				return currentNode
@@ -145,216 +144,6 @@ func (bTree *BTree) AddingToRoot(position *Node, record *Record.Record) {
 
 }
 
-func (bTree *BTree) Split(position, parentNode *Node, overflowRecord *Record.Record, isParentOverflow bool) {
-	fmt.Println(position.Keys)
-	//leftChild
-	leftChildNode := createNode(bTree.T)
-	for i := 0; i < position.n; i++ {
-		if position.Keys[i] == nil {
-			break
-		}
-		leftChildNode.Keys[i] = position.Keys[i]
-		leftChildNode.n += 1
-	}
-	//RightChild
-	rightChildNode := createNode(bTree.T)
-	index := 0
-	for i := (position.n-1)/2 + 1; i < position.n; i++ {
-		rightChildNode.Keys[index] = position.Keys[i]
-		rightChildNode.n += 1
-		index++
-	}
-
-	bTree.sortKeys(overflowRecord, parentNode)
-	newChildren := make([]*Node, bTree.T)
-	for i := 0; i < bTree.T; i++ {
-		newChildren[i] = nil
-	}
-	if isParentOverflow {
-		newChildren = append(newChildren, nil)
-	}
-
-	i := 0
-	k := 0
-	for i < len(parentNode.Children) {
-		if parentNode.Children[i] == nil {
-			break
-		}
-		if parentNode.Children[i] != position {
-			newChildren[k] = parentNode.Children[i]
-			k++
-			i++
-		} else {
-			newChildren[k] = leftChildNode
-			k++
-			newChildren[k] = rightChildNode
-			k++
-			i++
-		}
-	}
-
-	leftChildNode.parent = parentNode
-	rightChildNode.parent = parentNode
-	parentNode.Children = newChildren
-}
-
-// func (bTree *BTree) SplitRoot(position, parentNode *Node, overflowRecord *Record.Record) {
-// 	// bTree.Split(position, parentNode, overflowRecord, true)
-// 	newRootNode := createNode(bTree.T)
-// 	newRootNode.n = 1
-// 	index := (parentNode.n - 1) / 2
-// 	newRootNode.Keys[0] = overflowRecord
-
-// 	keysBeforeOverflow := make([]*Record.Record, bTree.T-1)
-// 	keysAfterOverflow := make([]*Record.Record, bTree.T-1)
-// 	childrenBeforeOverflow := make([]*Node, bTree.T)
-// 	childrenAfterOverflow := make([]*Node, bTree.T)
-// 	for i := 0; i < bTree.T; i++ {
-// 		if i != bTree.T-1 {
-// 			keysBeforeOverflow[i] = nil
-// 			keysAfterOverflow[i] = nil
-// 		}
-// 		childrenBeforeOverflow[i] = nil
-// 		childrenAfterOverflow[i] = nil
-// 	}
-
-// 	k1 := 0
-// 	k2 := 0
-// 	for i := 0; i < parentNode.n; i++ {
-// 		if i < index {
-// 			keysBeforeOverflow[k1] = parentNode.Keys[i]
-// 			k1++
-// 		} else if i > index {
-// 			keysAfterOverflow[k2] = parentNode.Keys[i]
-// 			k2++
-// 		}
-// 	}
-// 	nodeBefore := createNode(bTree.T)
-// 	nodeAfter := createNode(bTree.T)
-// 	nodeBefore.Keys = keysBeforeOverflow
-// 	nodeBefore.n = k1
-// 	nodeAfter.Keys = keysAfterOverflow
-// 	nodeAfter.n = k2
-
-// 	k1, k2 = 0, 0
-// 	for i := 0; i < parentNode.n+1; i++ {
-// 		if i <= index {
-// 			childrenBeforeOverflow[k1] = parentNode.Children[i]
-// 			k1++
-// 		} else {
-// 			childrenAfterOverflow[k2] = parentNode.Children[i]
-// 			k2++
-// 		}
-// 	}
-
-// 	nodeBefore.Children = childrenBeforeOverflow
-// 	nodeAfter.Children = childrenAfterOverflow
-// 	for i := 0; i < len(nodeBefore.Children); i++ {
-// 		if nodeBefore.Children[i] != nil {
-// 			nodeBefore.Children[i].parent = nodeBefore
-// 		}
-// 		if nodeAfter.Children[i] != nil {
-// 			nodeAfter.Children[i].parent = nodeAfter
-// 		}
-// 	}
-
-// 	nodeBefore.parent, nodeAfter.parent = newRootNode, newRootNode
-// 	newRootNode.Children[0] = nodeBefore
-// 	newRootNode.Children[1] = nodeAfter
-
-// 	bTree.Root = newRootNode
-// }
-
-func (bTree *BTree) SplitRegularNode(position, parentNode *Node, overflowRecord, record *Record.Record) {
-	bTree.Split(position, parentNode, overflowRecord, true)
-
-	keysBeforeOverflow := make([]*Record.Record, bTree.T-1)
-	keysAfterOverflow := make([]*Record.Record, bTree.T-1)
-	childrenBeforeOverflow := make([]*Node, bTree.T)
-	childrenAfterOverflow := make([]*Node, bTree.T)
-	for i := 0; i < bTree.T; i++ {
-		if i != bTree.T-1 {
-			keysBeforeOverflow[i] = nil
-			keysAfterOverflow[i] = nil
-		}
-		childrenBeforeOverflow[i] = nil
-		childrenAfterOverflow[i] = nil
-	}
-	index := (parentNode.n - 1) / 2
-	k1 := 0
-	k2 := 0
-	for i := 0; i < parentNode.n; i++ {
-		if i < index {
-			keysBeforeOverflow[k1] = parentNode.Keys[i]
-			k1++
-		} else if i > index {
-			keysAfterOverflow[k2] = parentNode.Keys[i]
-			k2++
-		}
-	}
-	nodeBefore := createNode(bTree.T)
-	nodeAfter := createNode(bTree.T)
-	nodeBefore.Keys = keysBeforeOverflow
-
-	nodeBefore.n = k1
-	nodeAfter.Keys = keysAfterOverflow
-	nodeAfter.n = k2
-
-	k1, k2 = 0, 0
-	for i := 0; i < parentNode.n+1; i++ {
-		if i <= index {
-			childrenBeforeOverflow[k1] = parentNode.Children[i]
-			childrenBeforeOverflow[k1].parent = nodeBefore
-			k1++
-		} else {
-			childrenAfterOverflow[k2] = parentNode.Children[i]
-			childrenAfterOverflow[k2].parent = nodeAfter
-			k2++
-		}
-	}
-	nodeBefore.Children = childrenBeforeOverflow
-	nodeAfter.Children = childrenAfterOverflow
-	nodeBefore.parent, nodeAfter.parent = parentNode.parent, parentNode.parent
-
-	if parentNode.parent.T == parentNode.parent.n+1 {
-		parentNode.parent.Children = append(parentNode.parent.Children, nil)
-	}
-	for i := 0; i < len(parentNode.parent.Children); i++ {
-		if parentNode.parent.Children[i] == parentNode {
-			parentNode.parent.Children[i] = nodeBefore
-			i++
-			temp1 := parentNode.parent.Children[i]
-			parentNode.parent.Children[i] = nodeAfter
-			i++
-			for i < len(parentNode.parent.Children) {
-				temp2 := parentNode.parent.Children[i]
-				parentNode.parent.Children[i] = temp1
-				temp1 = temp2
-				i++
-			}
-			break
-		}
-	}
-
-	newOverflowRecord := parentNode.Keys[index]
-	fmt.Println("--------------")
-	bTree.Print(bTree.Root)
-	fmt.Println("Position:", parentNode.Keys)
-	fmt.Println("New: ", newOverflowRecord)
-	fmt.Println("--------------")
-	if parentNode.parent.T == parentNode.parent.n+1 {
-		position = parentNode
-		record = parentNode.Keys[(parentNode.n-1)/2]
-		if position.parent == bTree.Root {
-			// bTree.SplitRoot(position, position.parent, record)
-		} else {
-			bTree.SplitRegularNode(position, position.parent, newOverflowRecord, overflowRecord)
-		}
-
-	} else {
-		bTree.sortKeys(newOverflowRecord, parentNode.parent)
-	}
-}
 func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
 	// 1. Adding new key
 	position.Keys = append(position.Keys, nil)
@@ -366,7 +155,6 @@ func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
 
 	//leftChild
 	leftChildNode := createNode(bTree.T)
-	fmt.Println(position.n, len(position.Keys))
 	for i := 0; i < position.n; i++ {
 		if position.Keys[i] == nil {
 			break
@@ -389,10 +177,7 @@ func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
 	bTree.sortKeys(overflowRecord, parentNode)
 
 	// 4.Move children to parent
-	newChildren := make([]*Node, parentNode.n+2)
-	for i := 0; i < bTree.T; i++ {
-		newChildren[i] = nil
-	}
+	newChildren := make([]*Node, bTree.T+1)
 
 	i := 0
 	k := 0
@@ -419,6 +204,78 @@ func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
 }
 
 func (bTree *BTree) SplitParentNode(position *Node) {
+	keysBeforeOverflow := make([]*Record.Record, bTree.T-1)
+	keysAfterOverflow := make([]*Record.Record, bTree.T-1)
+	childrenBeforeOverflow := make([]*Node, bTree.T)
+	childrenAfterOverflow := make([]*Node, bTree.T)
+	for i := 0; i < bTree.T; i++ {
+		if i != bTree.T-1 {
+			keysBeforeOverflow[i] = nil
+			keysAfterOverflow[i] = nil
+		}
+		childrenBeforeOverflow[i] = nil
+		childrenAfterOverflow[i] = nil
+	}
+	index := (position.n - 1) / 2
+	k1 := 0
+	k2 := 0
+	for i := 0; i < position.n; i++ {
+		if i < index {
+			keysBeforeOverflow[k1] = position.Keys[i]
+			k1++
+		} else if i > index {
+			keysAfterOverflow[k2] = position.Keys[i]
+			k2++
+		}
+	}
+	nodeBefore := createNode(bTree.T)
+	nodeAfter := createNode(bTree.T)
+	nodeBefore.Keys = keysBeforeOverflow
+
+	nodeBefore.n = k1
+	nodeAfter.Keys = keysAfterOverflow
+	nodeAfter.n = k2
+
+	k1, k2 = 0, 0
+	for i := 0; i < position.n+1; i++ {
+		if i <= index {
+			childrenBeforeOverflow[k1] = position.Children[i]
+			childrenBeforeOverflow[k1].parent = nodeBefore
+			k1++
+		} else {
+			childrenAfterOverflow[k2] = position.Children[i]
+			childrenAfterOverflow[k2].parent = nodeAfter
+			k2++
+		}
+	}
+	nodeBefore.Children = childrenBeforeOverflow
+	nodeAfter.Children = childrenAfterOverflow
+	nodeBefore.parent, nodeAfter.parent = position.parent, position.parent
+
+	if position.parent.T == position.parent.n+1 {
+		position.parent.Children = append(position.parent.Children, nil)
+	}
+	for i := 0; i < len(position.parent.Children); i++ {
+		if position.parent.Children[i] == position {
+			position.parent.Children[i] = nodeBefore
+			i++
+			temp1 := position.parent.Children[i]
+			position.parent.Children[i] = nodeAfter
+			i++
+			for i < len(position.parent.Children) {
+				temp2 := position.parent.Children[i]
+				position.parent.Children[i] = temp1
+				temp1 = temp2
+				i++
+			}
+			break
+		}
+	}
+
+	newOverflowRecord := position.Keys[index]
+	parentNode := position.parent
+	parentNode.Keys = append(parentNode.Keys, nil)
+	bTree.sortKeys(newOverflowRecord, parentNode)
 
 }
 
@@ -523,11 +380,22 @@ func (bTree *BTree) AddElement(record *Record.Record, position *Node) *Node {
 		//overflow
 		if position.T == position.n+1 {
 			bTree.SplitLeaf(position, record)
-			//overflow in parent
-			if position.parent.n == bTree.T {
-				bTree.SplitRoot(position.parent)
-			}
 
+			for true {
+				if position.parent.n == bTree.T {
+					if position.parent == bTree.Root {
+						//overflow in parent
+						bTree.SplitRoot(position.parent)
+						break
+					} else {
+						//overflow in regular node
+						bTree.SplitParentNode(position.parent)
+						position = position.parent
+					}
+				} else {
+					break
+				}
+			}
 		} else {
 			//regular adding, not overflow
 			bTree.sortKeys(record, position)
@@ -548,6 +416,20 @@ func (bTree *BTree) Print(root *Node) {
 			for _, element := range root.Children {
 				bTree.Print(element)
 			}
+		}
+	}
+
+}
+
+func (bTree *BTree) InOrderTraversal(list *[]*Record.Record, node *Node) {
+	if node != nil {
+		for i := 0; i < node.n+1; i++ {
+			bTree.InOrderTraversal(list, node.Children[i])
+			if i < node.n {
+				*list = append(*list, node.Keys[i])
+				// fmt.Println(node.Keys[i])
+			}
+
 		}
 	}
 
