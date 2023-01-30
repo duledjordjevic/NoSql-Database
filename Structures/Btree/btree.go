@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-type Structure interface {
-	Search(key string) *Node
-	AddElement(record *Record.Record) *Node
-}
-
 type Node struct {
 	parent   *Node
 	Keys     []*Record.Record
@@ -345,10 +340,9 @@ func (bTree *BTree) SplitRoot(position *Node) {
 	bTree.Root = newRootNode
 
 }
-func (bTree *BTree) AddElement(record *Record.Record, position *Node) *Node {
-	if position == nil {
-		position = bTree.Search(record.GetKey())
-	}
+func (bTree *BTree) AddElement(record *Record.Record) (*Node, bool) {
+
+	position := bTree.Search(record.GetKey())
 
 	//tree is empty
 	if position == nil {
@@ -356,12 +350,12 @@ func (bTree *BTree) AddElement(record *Record.Record, position *Node) *Node {
 		RootNode.Keys[0] = record
 		RootNode.n = 1
 		bTree.Root = RootNode
-		return RootNode
+		return RootNode, false
 	}
 	//record already in tree
 	for i := 0; i < position.n; i++ {
 		if position.Keys[i].GetKey() == record.GetKey() {
-			return position
+			return position, true
 		}
 	}
 
@@ -370,7 +364,7 @@ func (bTree *BTree) AddElement(record *Record.Record, position *Node) *Node {
 		//Root is full
 		if position.T-1 == position.n {
 			bTree.AddingToRoot(position, record)
-			return position
+			return position, false
 		} else {
 			//Root is not full
 			bTree.sortKeys(record, position)
@@ -401,7 +395,7 @@ func (bTree *BTree) AddElement(record *Record.Record, position *Node) *Node {
 			bTree.sortKeys(record, position)
 		}
 	}
-	return position
+	return position, false
 }
 
 func (bTree *BTree) Print(root *Node) {

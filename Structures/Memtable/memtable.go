@@ -1,6 +1,7 @@
-package memtable
+package Memtable
 
 import (
+	btree "NAiSP/Structures/Btree"
 	record "NAiSP/Structures/Record"
 	skiplist "NAiSP/Structures/Skiplist"
 )
@@ -9,8 +10,9 @@ type MemTable struct {
 	Capacity         float64
 	Trashold         float64
 	StructName       string
-	NumberOFElements float64
-	Structure        skiplist.Structure
+	numberOFElements float64
+	skipList         *skiplist.SkipList
+	bTree            *btree.BTree
 }
 
 func (mem *MemTable) FillDefaults() {
@@ -23,14 +25,14 @@ func (mem *MemTable) FillDefaults() {
 		mem.Trashold = 0.8
 	}
 
-	if mem.NumberOFElements != 0 {
-		mem.NumberOFElements = 0
+	if mem.numberOFElements != 0 {
+		mem.numberOFElements = 0
 	}
 
 	if mem.StructName == "btree" {
-		// mem.Structure = btree.CreateBTree()
+		mem.bTree = btree.CreateBTree(4)
 	} else {
-		mem.Structure = skiplist.CreateSkipList()
+		mem.skipList = skiplist.CreateSkipList()
 	}
 }
 
@@ -39,39 +41,73 @@ func (mem *MemTable) Empty() {
 }
 
 func (mem *MemTable) Find(key string) bool {
-	found := mem.Structure.Search(key)
-	if found.Value.GetKey() == key {
-		if found.Value.GetTombStone() == 1 {
-			return false
-		} else {
-			return true
+	if mem.StructName == "btree" {
+		found := mem.bTree.Search(key)
+
+		for _, i := range found.Keys {
+			if i.GetKey() == key {
+				if i.GetTombStone() == 1 {
+					return false
+				}
+				return true
+			}
 		}
+
+	} else {
+
+		found := mem.skipList.Search(key)
+		if found.Value.GetKey() == key {
+			if found.Value.GetTombStone() == 1 {
+				return false
+			} else {
+				return true
+			}
+		}
+
 	}
 	return false
 }
 
-func (mem *MemTable) Add(record *record.Record) {
+func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
 
-	found := mem.Structure.AddElement(record)
-	if found.Value.GetKey() == record.GetKey() && found.Value.GetTimeStamp() == record.GetTimeStamp() && found.Value.GetTombStone() == record.GetTombStone() && string(found.Value.GetValue()) == string(record.GetValue()) {
-		mem.NumberOFElements++
-		if mem.NumberOFElements/mem.Capacity >= mem.Trashold {
-			mem.Flush()
+	if mem.StructName == "btree" {
+		elements, found := mem.bTree.AddElement(record)
+		if found {
+			for i := range elements.Keys {
+				if elements.Keys[i].GetKey() == record.GetKey() {
+					elements.Keys[i] = record
+				}
+			}
+		} else {
+			mem.numberOFElements++
+			if mem.numberOFElements/mem.Capacity >= mem.Trashold {
+				return mem.Flush()
+			}
 		}
 	} else {
-		found.Value = record
+
+		found := mem.skipList.AddElement(record)
+		if found.Value.GetKey() == record.GetKey() && found.Value.GetTimeStamp() == record.GetTimeStamp() && found.Value.GetTombStone() == record.GetTombStone() && string(found.Value.GetValue()) == string(record.GetValue()) {
+			mem.numberOFElements++
+			if mem.numberOFElements/mem.Capacity >= mem.Trashold {
+				return mem.Flush()
+			}
+		} else {
+			found.Value = record
+		}
 	}
+	return nil
 }
 
-func (mem *MemTable) Flush() []*record.Record {
+func (mem *MemTable) Flush() *[]*record.Record {
 	listRecords := make([]*record.Record, 0)
 
 	if mem.StructName == "btree" {
-
+		mem.bTree.InOrderTraversal(&listRecords, mem.bTree.Root)
 	} else {
-		listRecords = mem.Structure.GetAllElements()
+		listRecords = mem.skipList.GetAllElements()
 	}
 
 	mem.Empty()
-	return listRecords
+	return &listRecords
 }

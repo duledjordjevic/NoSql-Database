@@ -11,11 +11,6 @@ const (
 	POS_INFINITY = "■"
 )
 
-type Structure interface {
-	Search(key string) *Node
-	AddElement(record Record.Record) *Node
-}
-
 type Node struct {
 	above *Node
 	below *Node
@@ -44,7 +39,7 @@ type SkipList struct {
 	height uint
 }
 
-func createSkipList() *SkipList {
+func CreateSkipList() *SkipList {
 	skipList := &SkipList{}
 	negRecord := Record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
 	posRecord := Record.NewRecordKeyValue(POS_INFINITY, []byte{1, 2}, byte(0))
@@ -73,15 +68,15 @@ func (skipList *SkipList) Search(key string) *Node {
 
 }
 
-func (skipList *SkipList) AddElement(value *Record.Record) *Node {
-	position := skipList.Search(value.GetKey())
+func (skipList *SkipList) AddElement(record *Record.Record) *Node {
+	position := skipList.Search(record.GetKey())
 
 	var q *Node
 
 	var level int = -1
 	var numberOfHeads int = -1
 
-	if value.GetKey() == position.key {
+	if record.GetKey() == position.key {
 		return position
 	}
 
@@ -99,7 +94,7 @@ func (skipList *SkipList) AddElement(value *Record.Record) *Node {
 
 		position = position.above
 		// fmt.Println(&position)
-		q = skipList.insertAfterAbove(position, q, value)
+		q = skipList.insertAfterAbove(position, q, record)
 
 		if rand.Seed(time.Now().UnixNano()); rand.Intn(2) == 0 {
 			break
@@ -178,61 +173,17 @@ func (skipList *SkipList) setAboveAndBelowReferences(position *Node, value *Reco
 
 }
 
-// func (skipList *SkipList) removeElement(value) bool {
-// 	nodeToBeRemoved := skipList.Search(key)
+func (skip *SkipList) GetAllElements() []*Record.Record {
+	listRecords := make([]*Record.Record, 0)
 
-// 	if nodeToBeRemoved.key != key {
-// 		return false
-// 	}
-
-// 	skipList.removeReferencesToNode(nodeToBeRemoved)
-
-// 	for nodeToBeRemoved != nil {
-// 		skipList.removeReferencesToNode(nodeToBeRemoved)
-
-// 		if nodeToBeRemoved.above != nil {
-// 			nodeToBeRemoved = nodeToBeRemoved.above
-// 		} else {
-// 			break
-// 		}
-
-// 	}
-// 	return true
-// }
-
-// func (skipList *SkipList) removeReferencesToNode(nodeToBeRemoved *Node) {
-
-// 	afterNodeToBeRemoved := nodeToBeRemoved.next
-// 	beforeNodeToBeRemoved := nodeToBeRemoved.prev
-
-// 	beforeNodeToBeRemoved.next = afterNodeToBeRemoved
-// 	afterNodeToBeRemoved.prev = beforeNodeToBeRemoved
-
-// }
-
-func main() {
-	// rand.Seed(time.Now().UnixNano())
-	// fmt.Println(rand.Intn(2))
-
-	skipList := createSkipList()
-
-	// fmt.Println(skipList.head.key)
-	negRecord := Record.NewRecordKeyValue("10", []byte{1, 2}, byte(0))
-	// print(skipList.AddElement(negRecord))
-	// skipList.AddElement(negRecord)
-	// negRecord = record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
-	skipList.AddElement(negRecord)
-	negRecord = Record.NewRecordKeyValue("30", []byte{1, 2}, byte(0))
-	skipList.AddElement(negRecord)
-	negRecord = Record.NewRecordKeyValue("Dusan", []byte{1, 2}, byte(0))
-	skipList.AddElement(negRecord)
-	negRecord = Record.NewRecordKeyValue("Rade", []byte{1, 2}, byte(0))
-	skipList.AddElement(negRecord)
-	// skipList.AddElement(negRecord)
-	print(skipList.Search("10").key)
-	print(skipList.Search("30").key)
-	print(skipList.Search("Rade").key)
-	print(skipList.Search("Trajce").key)
-	// fmt.Println(skipList.removeElement(10))
-
+	n := skip.head
+	for n.below != nil {
+		n = n.below
+	}
+	n = n.next
+	for n.key != skip.tail.key {
+		listRecords = append(listRecords, n.Value)
+		n = n.next
+	}
+	return listRecords
 }
