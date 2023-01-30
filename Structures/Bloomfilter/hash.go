@@ -1,4 +1,4 @@
-package Bloomfilter
+package bloomfilter
 
 import (
 	"crypto/md5"

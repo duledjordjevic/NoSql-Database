@@ -15,6 +15,24 @@ type MemTable struct {
 	bTree            *btree.BTree
 }
 
+// function which create MemTable
+func CreateMemtable(capacity float64, trashold float64, structName string) *MemTable {
+	mem := MemTable{
+		Capacity:   capacity,
+		Trashold:   trashold,
+		StructName: structName,
+	}
+	if structName == "btree" {
+		b := btree.CreateBTree(4)
+		mem.bTree = b
+	} else {
+		skip := skiplist.CreateSkipList()
+		mem.skipList = skip
+	}
+	return &mem
+}
+
+// function which set default value
 func (mem *MemTable) FillDefaults() {
 
 	if mem.Capacity == 0 {
@@ -45,11 +63,15 @@ func (mem *MemTable) Find(key string) bool {
 		found := mem.bTree.Search(key)
 
 		for _, i := range found.Keys {
-			if i.GetKey() == key {
-				if i.GetTombStone() == 1 {
-					return false
+			if i != nil {
+				if i.GetKey() == key {
+					if i.GetTombStone() == 1 {
+						return false
+					}
+					return true
 				}
-				return true
+			} else {
+				break
 			}
 		}
 
@@ -81,7 +103,7 @@ func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
 		} else {
 			mem.numberOFElements++
 			if mem.numberOFElements/mem.Capacity >= mem.Trashold {
-				return mem.Flush()
+				return mem.flush()
 			}
 		}
 	} else {
@@ -90,7 +112,7 @@ func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
 		if found.Value.GetKey() == record.GetKey() && found.Value.GetTimeStamp() == record.GetTimeStamp() && found.Value.GetTombStone() == record.GetTombStone() && string(found.Value.GetValue()) == string(record.GetValue()) {
 			mem.numberOFElements++
 			if mem.numberOFElements/mem.Capacity >= mem.Trashold {
-				return mem.Flush()
+				return mem.flush()
 			}
 		} else {
 			found.Value = record
@@ -99,7 +121,7 @@ func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
 	return nil
 }
 
-func (mem *MemTable) Flush() *[]*record.Record {
+func (mem *MemTable) flush() *[]*record.Record {
 	listRecords := make([]*record.Record, 0)
 
 	if mem.StructName == "btree" {

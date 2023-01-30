@@ -1,13 +1,13 @@
 package btree
 
 import (
-	"NAiSP/Structures/Record"
+	record "NAiSP/Structures/Record"
 	"fmt"
 )
 
 type Node struct {
 	parent   *Node
-	Keys     []*Record.Record
+	Keys     []*record.Record
 	Children []*Node
 	isLeaf   bool
 	n        int
@@ -22,7 +22,7 @@ func createNode(T int) *Node {
 		T:      T,
 	}
 
-	node.Keys = make([]*Record.Record, node.T-1)
+	node.Keys = make([]*record.Record, node.T-1)
 	node.Children = make([]*Node, node.T)
 
 	for i := 0; i < node.T; i++ {
@@ -77,7 +77,7 @@ func (bTree *BTree) Search(key string) *Node {
 	return currentNode
 }
 
-func (bTree *BTree) sortKeys(record *Record.Record, position *Node) {
+func (bTree *BTree) sortKeys(record *record.Record, position *Node) {
 	index := -1
 	for i := 0; i < position.n; i++ {
 		if record.GetKey() < position.Keys[i].GetKey() {
@@ -100,7 +100,7 @@ func (bTree *BTree) sortKeys(record *Record.Record, position *Node) {
 
 	}
 }
-func (bTree *BTree) AddingToRoot(position *Node, record *Record.Record) {
+func (bTree *BTree) AddingToRoot(position *Node, record *record.Record) {
 	//adding record and sorting with that extra record
 	position.Keys = append(position.Keys, nil)
 	bTree.sortKeys(record, position)
@@ -139,7 +139,7 @@ func (bTree *BTree) AddingToRoot(position *Node, record *Record.Record) {
 
 }
 
-func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
+func (bTree *BTree) SplitLeaf(position *Node, record *record.Record) {
 	// 1. Adding new key
 	position.Keys = append(position.Keys, nil)
 	bTree.sortKeys(record, position)
@@ -199,8 +199,8 @@ func (bTree *BTree) SplitLeaf(position *Node, record *Record.Record) {
 }
 
 func (bTree *BTree) SplitParentNode(position *Node) {
-	keysBeforeOverflow := make([]*Record.Record, bTree.T-1)
-	keysAfterOverflow := make([]*Record.Record, bTree.T-1)
+	keysBeforeOverflow := make([]*record.Record, bTree.T-1)
+	keysAfterOverflow := make([]*record.Record, bTree.T-1)
 	childrenBeforeOverflow := make([]*Node, bTree.T)
 	childrenAfterOverflow := make([]*Node, bTree.T)
 	for i := 0; i < bTree.T; i++ {
@@ -280,8 +280,8 @@ func (bTree *BTree) SplitRoot(position *Node) {
 	index := (position.n - 1) / 2
 	newRootNode.Keys[0] = position.Keys[index]
 
-	keysBeforeOverflow := make([]*Record.Record, bTree.T-1)
-	keysAfterOverflow := make([]*Record.Record, bTree.T-1)
+	keysBeforeOverflow := make([]*record.Record, bTree.T-1)
+	keysAfterOverflow := make([]*record.Record, bTree.T-1)
 	childrenBeforeOverflow := make([]*Node, bTree.T)
 	childrenAfterOverflow := make([]*Node, bTree.T)
 	for i := 0; i < bTree.T; i++ {
@@ -340,7 +340,7 @@ func (bTree *BTree) SplitRoot(position *Node) {
 	bTree.Root = newRootNode
 
 }
-func (bTree *BTree) AddElement(record *Record.Record) (*Node, bool) {
+func (bTree *BTree) AddElement(record *record.Record) (*Node, bool) {
 
 	position := bTree.Search(record.GetKey())
 
@@ -415,7 +415,7 @@ func (bTree *BTree) Print(root *Node) {
 
 }
 
-func (bTree *BTree) InOrderTraversal(list *[]*Record.Record, node *Node) {
+func (bTree *BTree) InOrderTraversal(list *[]*record.Record, node *Node) {
 	if node != nil {
 		for i := 0; i < node.n+1; i++ {
 			bTree.InOrderTraversal(list, node.Children[i])

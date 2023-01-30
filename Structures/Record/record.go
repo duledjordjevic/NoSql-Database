@@ -1,4 +1,4 @@
-package Record
+package record
 
 import (
 	"encoding/binary"

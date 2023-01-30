@@ -1,4 +1,4 @@
-package Merkle
+package merkle
 
 import (
 	"bufio"

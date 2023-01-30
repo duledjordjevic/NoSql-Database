@@ -1,4 +1,4 @@
-package Bloomfilter
+package bloomfilter
 
 import (
 	"encoding/gob"

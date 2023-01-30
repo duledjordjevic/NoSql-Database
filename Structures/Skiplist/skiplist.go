@@ -1,7 +1,7 @@
 package skiplist
 
 import (
-	"NAiSP/Structures/Record"
+	record "NAiSP/Structures/Record"
 	"math/rand"
 	"time"
 )
@@ -17,10 +17,10 @@ type Node struct {
 	next  *Node
 	prev  *Node
 	key   string
-	Value *Record.Record
+	Value *record.Record
 }
 
-func createNode(value *Record.Record) *Node {
+func createNode(value *record.Record) *Node {
 	node := &Node{
 		key:   value.GetKey(),
 		Value: value,
@@ -41,8 +41,8 @@ type SkipList struct {
 
 func CreateSkipList() *SkipList {
 	skipList := &SkipList{}
-	negRecord := Record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
-	posRecord := Record.NewRecordKeyValue(POS_INFINITY, []byte{1, 2}, byte(0))
+	negRecord := record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
+	posRecord := record.NewRecordKeyValue(POS_INFINITY, []byte{1, 2}, byte(0))
 	skipList.head = createNode(negRecord)
 	skipList.tail = createNode(posRecord)
 	skipList.head.next = skipList.tail
@@ -68,7 +68,7 @@ func (skipList *SkipList) Search(key string) *Node {
 
 }
 
-func (skipList *SkipList) AddElement(record *Record.Record) *Node {
+func (skipList *SkipList) AddElement(record *record.Record) *Node {
 	position := skipList.Search(record.GetKey())
 
 	var q *Node
@@ -111,8 +111,8 @@ func (skipList *SkipList) canIncreaseLevel(level int) {
 }
 
 func (skipList *SkipList) addEmptyLevel() {
-	negRecord := Record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
-	posRecord := Record.NewRecordKeyValue(POS_INFINITY, []byte{1, 2}, byte(0))
+	negRecord := record.NewRecordKeyValue(NEG_INFINITY, []byte{1, 2}, byte(0))
+	posRecord := record.NewRecordKeyValue(POS_INFINITY, []byte{1, 2}, byte(0))
 	newHeadNode := createNode(negRecord)
 	newTailNode := createNode(posRecord)
 
@@ -130,7 +130,7 @@ func (skipList *SkipList) addEmptyLevel() {
 
 }
 
-func (skipList *SkipList) insertAfterAbove(position *Node, q *Node, value *Record.Record) *Node {
+func (skipList *SkipList) insertAfterAbove(position *Node, q *Node, value *record.Record) *Node {
 
 	newNode := createNode(value)
 	// fmt.Println(position.below.key)
@@ -151,7 +151,7 @@ func (skipList *SkipList) setBeforeAndAfterReferences(q *Node, newNode *Node) {
 
 }
 
-func (skipList *SkipList) setAboveAndBelowReferences(position *Node, value *Record.Record, newNode *Node, nodeBeforeNewNode *Node) {
+func (skipList *SkipList) setAboveAndBelowReferences(position *Node, value *record.Record, newNode *Node, nodeBeforeNewNode *Node) {
 	if nodeBeforeNewNode != nil {
 		for {
 			if nodeBeforeNewNode.next.key != value.GetKey() {
@@ -173,8 +173,8 @@ func (skipList *SkipList) setAboveAndBelowReferences(position *Node, value *Reco
 
 }
 
-func (skip *SkipList) GetAllElements() []*Record.Record {
-	listRecords := make([]*Record.Record, 0)
+func (skip *SkipList) GetAllElements() []*record.Record {
+	listRecords := make([]*record.Record, 0)
 
 	n := skip.head
 	for n.below != nil {
