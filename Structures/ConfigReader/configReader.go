@@ -10,7 +10,10 @@ import (
 
 type ConfigReader struct {
 	WalSize             int           `yaml:"wal_size"`
+	WalBufferCapacity   int           `yaml:"wal_buffer_capacity"`
+	MaxNumberOfSegments int           `yaml:"max_number_of_segments"`
 	MemtableTrashold    float64       `yaml:"memtable_trashold"`
+	CacheCapacity       int           `yaml:"cache_capacity"`
 	MemtableSize        int           `yaml:"memtable_size"`
 	MemtableStructure   string        `yaml:"memtable_structure"`
 	Compaction          string        `yaml:"compaction"`
@@ -26,9 +29,12 @@ func (config *ConfigReader) ReadConfig() {
 	configData, err := ioutil.ReadFile("./Data/ConfigurationFile/configuration.yaml")
 	if err != nil || len(configData) == 0 {
 		config.WalSize = 10
+		config.WalBufferCapacity = 3
+		config.MaxNumberOfSegments = 10
 		config.MemtableSize = 10
 		config.MemtableTrashold = 0.8
 		config.MemtableStructure = "btree"
+		config.CacheCapacity = 5
 		config.Compaction = "leveled"
 		config.LSMLevelMax = 4
 		config.LSMlevel0Number = 8

@@ -1,7 +1,10 @@
 wal_size: 10
+wal_buffer_capacity: 3
+max_number_of_segments: 10
 memtable_trashold: 0.8
 memtable_size: 10
 memtable_structure: btree
+cache_capacity: 5
 compaction: leveled
 lsm_leveled_max: 4
 lsm_max_l0_number: 8 
