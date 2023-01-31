@@ -1,7 +1,7 @@
 package main
 
 import (
-	sstable "NAiSP/Structures/Sstable"
+	writepath "NAiSP/Structures/WritePath"
 	"fmt"
 )
 
@@ -40,6 +40,8 @@ func main() {
 	// fmt.Println(rec3)
 	// fmt.Println(rec4)
 	// fmt.Println(rec5)
-	tocTabela := sstable.NewSStableFromTOC("TOC.txt")
-	fmt.Println(tocTabela.DataTablePath, tocTabela.BloomFilterPath, tocTabela.IndexTablePath, tocTabela.SummaryPath)
+	// tocTabela := sstable.NewSStableFromTOC("TOC.txt")
+	// fmt.Println(tocTabela.DataTablePath, tocTabela.BloomFilterPath)
+
+	fmt.Println(writepath.GenerateFileName("Leveled"))
 }

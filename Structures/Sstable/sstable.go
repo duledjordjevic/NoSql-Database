@@ -24,8 +24,17 @@ func NewSStable(dataTable string, indexTable string, summary string, bloom strin
 	sstable := SStable{DataTablePath: dataTable, IndexTablePath: indexTable, SummaryPath: summary, BloomFilterPath: bloom, MetaDataPath: meta, TOCFilePath: tocPath}
 	return &sstable
 }
+func NewSStableAutomatic(prefix, sufix string) *SStable {
+	sstable := SStable{DataTablePath: prefix + "data" + sufix + ".bin",
+		IndexTablePath:  prefix + "index" + sufix + ".bin",
+		SummaryPath:     prefix + "summary" + sufix + ".bin",
+		BloomFilterPath: prefix + "bloomfilter" + sufix + ".gob",
+		MetaDataPath:    prefix + "Metadata" + sufix + ".txt",
+		TOCFilePath:     prefix + "TOC" + sufix + ".txt"}
+	return &sstable
+}
 
-func (table *SStable) FormSStable(records []record.Record) {
+func (table *SStable) FormSStable(records *[]*record.Record) {
 	file, err := os.Create(table.DataTablePath)
 	if err != nil {
 		fmt.Println("Error")
@@ -66,18 +75,19 @@ func (table *SStable) FormSStable(records []record.Record) {
 
 	bf := bloomfilter.NewBLoomFilter(100, 0.01)
 	merkle := merkle.NewMerkleTreeFile(table.MetaDataPath)
-	for _, record := range records {
+
+	for _, record := range *records {
 		bf.Hash(record.GetKey())
 		merkle.AddLeaf(record.Data)
 		if i == 1 {
-			firstRecord = record
+			firstRecord = *record
 			recordInsertSum := NewSummary(firstRecord.GetKey(), currentOffIndex)
 			recordInsertSum.WriteSummary(writerSumEx)
 		}
-		if i == len(records) {
-			lastRecord = record
+		if i == len(*records) {
+			lastRecord = *record
 		}
-		WriteDataTable(record, writer)
+		WriteDataTable(*record, writer)
 
 		index := NewIndex(record.GetKey(), uint64(currentSize))
 		index.WriteIndexTable(writerIndex)
@@ -85,7 +95,7 @@ func (table *SStable) FormSStable(records []record.Record) {
 
 		currentOffIndex += index.GetSize()
 		if i%5 == 0 {
-			recordForSummary = record
+			recordForSummary = *record
 
 			recordInsertSum := NewSummary(recordForSummary.GetKey(), currentOffIndex)
 			recordInsertSum.WriteSummary(writerSumEx)
