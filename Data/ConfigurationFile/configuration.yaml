@@ -1,0 +1,10 @@
+wal_size: 10
+memtable_trashold: 0.8
+memtable_size: 10
+memtable_structure: btree
+compaction: leveled
+lsm_level_max: 4
+token_bucket_capacity: 3
+token_bucket_duration: 3000000000
+
+
