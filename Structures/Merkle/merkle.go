@@ -160,7 +160,7 @@ func (mt *MerkleTree) GenerateMerkleTree() {
 }
 
 func (mt *MerkleTree) Encode() {
-	file, err := os.OpenFile(OUTFILE, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(mt.Source, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -174,8 +174,8 @@ func (mt *MerkleTree) Encode() {
 	}
 }
 
-func (mt *MerkleTree) Decode() {
-	file, err := os.Open(OUTFILE)
+func (mt *MerkleTree) Decode(filePath string) {
+	file, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
 	}
