@@ -85,14 +85,14 @@ func (lru *LRUCache) RemoveElement(key string) {
 }
 
 // Get element from cache, nil if
-func (lru *LRUCache) GetElement(key string) (bool, []byte) {
+func (lru *LRUCache) GetElement(key string) []byte {
 
 	result, present := lru.MapOfElements[key]
 	if present {
 		// the new newest element
 		lru.ListOfElements.MoveToFront(result)
-		return true, result.Value.(OneElement).Value
+		return result.Value.(OneElement).Value
 	}
 
-	return false, nil
+	return nil
 }
