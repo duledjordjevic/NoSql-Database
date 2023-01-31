@@ -15,6 +15,9 @@ type ConfigReader struct {
 	MemtableStructure   string        `yaml:"memtable_structure"`
 	Compaction          string        `yaml:"compaction"`
 	LSMLevelMax         int           `yaml:"lsm_level_max"`
+	LSMlevel0Number     int           `yaml:"lsm_max_l0_number"`
+	LSMlevel1Number     int           `yaml:"lsm_max_l1_number"`
+	LSMmultiplier       int           `yaml:"lsm_leveled_multiplier"`
 	TokenBucketCapacity int           `yaml:"token_bucket_capacity"`
 	TokenBucketDuration time.Duration `yaml:"token_bucket_duration"`
 }
@@ -26,8 +29,11 @@ func (config *ConfigReader) ReadConfig() {
 		config.MemtableSize = 10
 		config.MemtableTrashold = 0.8
 		config.MemtableStructure = "btree"
-		config.Compaction = "size-tired"
+		config.Compaction = "leveled"
 		config.LSMLevelMax = 4
+		config.LSMlevel0Number = 8
+		config.LSMlevel1Number = 10
+		config.LSMmultiplier = 10
 		config.TokenBucketCapacity = 3
 		config.TokenBucketDuration = 3000000000
 	} else {
