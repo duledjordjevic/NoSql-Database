@@ -30,15 +30,15 @@ func (sum *Summary) GetKey() string {
 	keySize := sum.GetKeySize()
 	return string(sum.Data[KEY_MIN_SIZE : KEY_MIN_SIZE+keySize])
 }
-func (sum *Summary) GetOffsetSum() []byte {
+func (sum *Summary) GetOffsetSum() uint64 {
 	keySize := sum.GetKeySize()
-	return sum.Data[KEY_MIN_SIZE+keySize:]
+	return binary.BigEndian.Uint64(sum.Data[KEY_MIN_SIZE+keySize:])
 }
-func NewSummary(key string, offset []byte) *Summary {
+func NewSummary(key string, offset uint64) *Summary {
 	data := make([]byte, 0)
 	data = binary.BigEndian.AppendUint64(data, uint64(len(key)))
 	data = append(data, []byte(key)...)
-	data = append(data, offset...)
+	data = binary.BigEndian.AppendUint64(data, uint64(offset))
 	return &Summary{Data: data}
 }
 
@@ -69,7 +69,7 @@ func NewSummaryHeader(keyMin string, keyMax string) *SummaryHeader {
 	return &SummaryHeader{Data: data}
 }
 
-func (sum *SummaryHeader) WriteSummary(writer *bufio.Writer) {
+func (sum *SummaryHeader) WriteSummaryHeader(writer *bufio.Writer) {
 	err := binary.Write(writer, binary.BigEndian, sum.Data)
 	if err != nil {
 		fmt.Println("Los unos")
@@ -85,8 +85,20 @@ func (sum *Summary) WriteSummary(writer *bufio.Writer) {
 	}
 	writer.Flush()
 }
+func ReadSummary(file *os.File) (*Summary, error) {
+	bytes := make([]byte, KEY_MIN_SIZE)
+	_, err := io.ReadAtLeast(file, bytes, KEY_MIN_SIZE)
+	if err != nil {
+		return nil, err
+	}
+	keySize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	key := record.ReadKey(file, keySize)
+	offset := ReadOffset(file)
+	sumRecord := NewSummary(key, offset)
 
-func ReadSumarry(file *os.File) (*SummaryHeader, error) {
+	return sumRecord, nil
+}
+func ReadSumarryHeader(file *os.File) (*SummaryHeader, error) {
 
 	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
 	_, err := io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
@@ -102,11 +114,19 @@ func ReadSumarry(file *os.File) (*SummaryHeader, error) {
 	return sumRecord, nil
 
 }
-func (sum *SummaryHeader) String() string {
+func (sum *Summary) String() string {
 	str := ""
-	str += strconv.FormatUint((sum.GetKeyMinSize()), 10) + " "
+	str += strconv.FormatUint((sum.GetKeySize()), 10) + " "
+	str += sum.GetKey() + " " + fmt.Sprint(sum.GetOffsetSum())
+	str += "\n"
+	return str
+}
+
+func (sum *SummaryHeader) String() string {
+	str := "=============== Summary Header ===============\n"
+	str += strconv.FormatUint((sum.GetKeyMinSize()), 10) + " , "
 	str += strconv.FormatUint((sum.GetKeyMaxSize()), 10) + " "
-	str += sum.GetKeyMin() + " " + sum.GetKeyMax()
+	str += "Key start: " + sum.GetKeyMin() + " , " + "Key end: " + sum.GetKeyMax()
 
 	str += "\n"
 	return str
@@ -120,12 +140,22 @@ func PrintSummary(summaryPath string) {
 	}
 	defer file.Close()
 
-	sum, err := ReadSumarry(file)
+	sum, err := ReadSumarryHeader(file)
 	if err != nil {
 		fmt.Println("Error")
 		return
 	}
 	str := sum.String()
 	fmt.Println(str)
+	fmt.Println("=============== Summary ===============")
+	for {
+		sumR, err := ReadSummary(file)
+		if err != nil {
+			return
+		}
+		strR := sumR.String()
+
+		fmt.Println(strR)
+	}
 
 }

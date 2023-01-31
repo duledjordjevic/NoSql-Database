@@ -1,23 +1,23 @@
 package sstable
 
 import (
+	"NAiSP/Structures/Bloomfilter"
 	"NAiSP/Structures/record"
 	"bufio"
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
 )
 
 type SStable struct {
-	DataTablePath  string
-	IndexTablePath string
-	SummaryPath    string
+	DataTablePath   string
+	IndexTablePath  string
+	SummaryPath     string
+	BloomFilterPath string
 }
 
-func NewSStable(dataTable string, indexTable string, summary string) *SStable {
-	sstable := SStable{DataTablePath: dataTable, IndexTablePath: indexTable, SummaryPath: summary}
+func NewSStable(dataTable string, indexTable string, summary string, bloom string) *SStable {
+	sstable := SStable{DataTablePath: dataTable, IndexTablePath: indexTable, SummaryPath: summary, BloomFilterPath: bloom}
 	return &sstable
 }
 
@@ -28,17 +28,20 @@ func (table *SStable) FormDataIndexSummary(records []record.Record) {
 		return
 	}
 	defer file.Close()
+
 	fileIndex, err := os.Create(table.IndexTablePath)
 	if err != nil {
 		fmt.Println("Error")
 		return
 	}
 	defer fileIndex.Close()
+
 	fileSumHeader, err := os.Create(table.SummaryPath)
 	if err != nil {
 		fmt.Println("Error")
 	}
 	defer fileSumHeader.Close()
+
 	fileSumExisting, err := os.Create("existing.bin")
 	if err != nil {
 		fmt.Println("Error")
@@ -54,7 +57,12 @@ func (table *SStable) FormDataIndexSummary(records []record.Record) {
 	var firstRecord record.Record
 	var lastRecord record.Record
 	var recordForSummary record.Record
+	currentSize := uint64(0)
+	currentOffIndex := uint64(0)
+
+	bf := Bloomfilter.NewBLoomFilter(100, 0.01)
 	for _, record := range records {
+		bf.Hash(record.GetKey())
 		if i == 1 {
 			firstRecord = record
 		}
@@ -62,33 +70,23 @@ func (table *SStable) FormDataIndexSummary(records []record.Record) {
 			lastRecord = record
 		}
 		WriteDataTable(record, writer)
-		NumOffset, check := getOffsetForKey(table.DataTablePath, record.GetKey())
-		if !check {
-			continue
-		}
-		var offset bytes.Buffer
-		binary.Write(&offset, binary.BigEndian, NumOffset)
-		index := NewIndex(record.GetKey(), offset.Bytes())
+
+		index := NewIndex(record.GetKey(), uint64(currentSize))
 		index.WriteIndexTable(writerIndex)
-		if i%10 == 0 {
+		currentSize += record.GetSize()
+		currentOffIndex += index.GetSize()
+		if i%5 == 0 {
 			recordForSummary = record
-			OffIndex, check := getOffsetForIndexKey(table.IndexTablePath, recordForSummary.GetKey())
-			if !check {
-				fmt.Println("Doslo je do greske")
-				return
-			}
-			var offset bytes.Buffer
-			binary.Write(&offset, binary.BigEndian, OffIndex)
-			recordInsertSum := NewSummary(recordForSummary.GetKey(), offset.Bytes())
+
+			recordInsertSum := NewSummary(recordForSummary.GetKey(), currentOffIndex)
 			recordInsertSum.WriteSummary(writerSumEx)
 		}
 		i++
 	}
-
+	bf.Encode(table.BloomFilterPath)
+	fileSumExisting.Seek(0, 0)
 	sum := NewSummaryHeader(firstRecord.GetKey(), lastRecord.GetKey())
-	// str := sum.String()
-	// fmt.Println(str)
-	sum.WriteSummary(writerSum)
+	sum.WriteSummaryHeader(writerSum)
 
 	_, err = io.Copy(fileSumHeader, fileSumExisting)
 	if err != nil {
@@ -103,5 +101,5 @@ func (table *SStable) FormDataIndexSummary(records []record.Record) {
 	}
 	PrintSummary(table.SummaryPath)
 	// PrintDataTable(table.DataTablePath)
-	// PrintIndexTable(table.IndexTablePath)
+	PrintIndexTable(table.IndexTablePath)
 }
