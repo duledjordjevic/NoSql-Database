@@ -1,7 +1,7 @@
 package sstable
 
 import (
-	"NAiSP/Structures/Bloomfilter"
+	bloomfilter "NAiSP/Structures/Bloomfilter"
 	"NAiSP/Structures/record"
 	"bufio"
 	"fmt"
@@ -60,7 +60,7 @@ func (table *SStable) FormDataIndexSummary(records []record.Record) {
 	currentSize := uint64(0)
 	currentOffIndex := uint64(0)
 
-	bf := Bloomfilter.NewBLoomFilter(100, 0.01)
+	bf := bloomfilter.NewBLoomFilter(100, 0.01)
 	for _, record := range records {
 		bf.Hash(record.GetKey())
 		if i == 1 {
