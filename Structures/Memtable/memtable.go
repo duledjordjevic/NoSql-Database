@@ -58,7 +58,7 @@ func (mem *MemTable) Empty() {
 	mem.FillDefaults()
 }
 
-func (mem *MemTable) Find(key string) bool {
+func (mem *MemTable) Find(key string) *record.Record {
 	if mem.StructName == "btree" {
 		found := mem.bTree.Search(key)
 
@@ -66,9 +66,9 @@ func (mem *MemTable) Find(key string) bool {
 			if i != nil {
 				if i.GetKey() == key {
 					if i.GetTombStone() == 1 {
-						return false
+						return nil
 					}
-					return true
+					return i
 				}
 			} else {
 				break
@@ -80,14 +80,14 @@ func (mem *MemTable) Find(key string) bool {
 		found := mem.skipList.Search(key)
 		if found.Value.GetKey() == key {
 			if found.Value.GetTombStone() == 1 {
-				return false
+				return nil
 			} else {
-				return true
+				return found.Value
 			}
 		}
 
 	}
-	return false
+	return nil
 }
 
 func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
