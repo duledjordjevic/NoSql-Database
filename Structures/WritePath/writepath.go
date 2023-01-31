@@ -3,9 +3,20 @@ package writepath
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
 	memtable "NAiSP/Structures/Memtable"
-	record "NAiSP/Structures/Record"
+	sstable "NAiSP/Structures/Sstable"
 	wal "NAiSP/Structures/WAL"
+	record "NAiSP/Structures/record"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"strconv"
+	"strings"
+)
+
+const (
+	DIRECTORY  = "./Data/Data/"
+	L0         = "/l0"
+	COMPACTION = "Leveled/"
 )
 
 // Store all types
@@ -31,8 +42,8 @@ func (wp *WritePath) Write(record *record.Record) {
 	writtenInMem := wp.MemTable.Add(record)
 	// If nill - not flushed
 	if writtenInMem != nil {
-		// TODO
-
+		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTION+"l0/", GenerateFileName("leveled"))
+		SStable.FormSStable(writtenInMem)
 		// Form new SsTable
 		// Check for compaction
 		return
@@ -43,4 +54,18 @@ func (wp *WritePath) Write(record *record.Record) {
 		wp.BloomFilter.Hash(record.GetKey())
 	}
 
+}
+
+func GenerateFileName(directory string) string {
+	files, err := ioutil.ReadDir(DIRECTORY + directory + L0)
+	if err != nil {
+		fmt.Println("Greska kod citanja direktorijuma: ", err)
+		log.Fatal(err)
+	}
+
+	lastFileName := files[len(files)-1]
+	newFileName, err := strconv.Atoi(strings.Split(strings.Split(lastFileName.Name(), "_")[2], ".bin")[0])
+	newFileName += 1
+
+	return "_l0_" + strconv.FormatInt(int64(newFileName), 10)
 }
