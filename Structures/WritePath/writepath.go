@@ -2,6 +2,7 @@ package writepath
 
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
+	configreader "NAiSP/Structures/ConfigReader"
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
@@ -14,9 +15,10 @@ import (
 )
 
 const (
-	DIRECTORY  = "./Data/Data/"
-	L0         = "/l0"
-	COMPACTION = "Leveled/"
+	DIRECTORY         = "./Data/Data/"
+	L0                = "/l0"
+	COMPACTIONleveled = "Leveled/"
+	COMPACTIONtiered  = "Size_tiered"
 )
 
 // Store all types
@@ -24,6 +26,7 @@ type WritePath struct {
 	Wal         *wal.WAL
 	MemTable    *memtable.MemTable
 	BloomFilter *bloomfilter.BloomFilter
+	Conifig     *configreader.ConfigReader
 }
 
 // Write Path
@@ -42,12 +45,17 @@ func (wp *WritePath) Write(record *record.Record) {
 	writtenInMem := wp.MemTable.Add(record)
 	// If nill - not flushed
 	if writtenInMem != nil {
-		// Generating new SSTable using next file suffix
-		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTION+"l0/", GenerateFileName("leveled"))
-		// Writting all data to disc
+		// for leveled
+		if wp.Conifig.Compaction == "leveled" {
+			// Generating new SSTable using next file suffix
+			SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONleveled+"l0/", GenerateFileName("leveled"))
+			// Writting all data to disc
+			SStable.FormSStable(writtenInMem)
+			return
+		}
+		// for size-tiered
+		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONtiered+"l0/", GenerateFileName("size_tiered"))
 		SStable.FormSStable(writtenInMem)
-		// Form new SsTable
-		// Check for compaction
 		return
 	}
 

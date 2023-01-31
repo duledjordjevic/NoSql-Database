@@ -2,6 +2,7 @@ package skiplist
 
 import (
 	record "NAiSP/Structures/Record"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -182,6 +183,7 @@ func (skip *SkipList) GetAllElements() []*record.Record {
 	}
 	n = n.next
 	for n.key != skip.tail.key {
+		fmt.Println(n.Value)
 		listRecords = append(listRecords, n.Value)
 		n = n.next
 	}

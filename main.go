@@ -6,6 +6,7 @@ import (
 	record "NAiSP/Structures/Record"
 	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
+	"fmt"
 )
 
 func main() {
@@ -26,34 +27,34 @@ func main() {
 	test15Record := record.NewRecordKeyValue("p", []byte{123, 31}, byte(0))
 	test16Record := record.NewRecordKeyValue("q", []byte{123, 31}, byte(0))
 	test17Record := record.NewRecordKeyValue("s", []byte{123, 31}, byte(0))
-	lista := []record.Record{*test1Record, *test2Record, *test3Record, *test4Record, *test5Record, *test6Record, *test7Record, *test8Record, *test9Record, *test10Record, *test11Record, *test12Record, *test13Record, *test14Record, *test15Record, *test16Record, *test17Record}
+	// lista := []record.Record{*test1Record, *test2Record, *test3Record, *test4Record, *test5Record, *test6Record, *test7Record, *test8Record, *test9Record, *test10Record, *test11Record, *test12Record, *test13Record, *test14Record, *test15Record, *test16Record, *test17Record}
+	lista1 := make([]*record.Record, 0)
+	lista1 = append(lista1, test1Record)
+	lista1 = append(lista1, test2Record)
+	lista1 = append(lista1, test3Record)
+	lista1 = append(lista1, test4Record)
+	lista1 = append(lista1, test5Record)
+	lista1 = append(lista1, test6Record)
+	lista1 = append(lista1, test7Record)
+	lista1 = append(lista1, test8Record)
+	lista1 = append(lista1, test9Record)
+	lista1 = append(lista1, test10Record)
+	lista1 = append(lista1, test11Record)
+	lista1 = append(lista1, test12Record)
+	lista1 = append(lista1, test13Record)
+	lista1 = append(lista1, test14Record)
+	lista1 = append(lista1, test15Record)
+	lista1 = append(lista1, test16Record)
+	lista1 = append(lista1, test17Record)
 
 	BF := bloomfilter.NewBLoomFilter(100, 0.01)
 	WAL := wal.NewWal()
-	MemTable := memtable.CreateMemtable(10, 0.8, "btree")
+	MemTable := memtable.CreateMemtable(10, 1, "btree")
 	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: BF}
-	for _, record := range lista {
-		wp.Write(&record)
+	for _, record := range lista1 {
+		wp.Write(record)
 	}
 
-	// tabela := sstable.NewSStable("data.bin", "index.bin", "summary.bin", "bloom.gob", "metadata.txt", "TOC.txt")
-	// tabela.FormSStable(lista)
-	// record := tabela.Search("l")
-	// rec1 := tabela.Search("q")
-	// rec2 := tabela.Search("s")
-	// rec3 := tabela.Search("d")
-	// rec4 := tabela.Search("n")
-	// rec5 := tabela.Search("a")
-
-	// fmt.Println(record)
-	// fmt.Println(rec1)
-	// fmt.Println(rec2)
-	// fmt.Println(rec3)
-	// fmt.Println(rec4)
-	// fmt.Println(rec5)
-	// tocTabela := sstable.NewSStableFromTOC("TOC.txt")
-	// fmt.Println(tocTabela.DataTablePath, tocTabela.BloomFilterPath)
-
-	// fmt.Println(writepath.GenerateFileName("Leveled"))
+	fmt.Println(writepath.GenerateFileName("size_tiered"))
 
 }

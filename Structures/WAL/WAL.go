@@ -25,7 +25,7 @@ import (
 
 const (
 	BUFFER_CAPACITY            = 3
-	SEGMENT_CAPACITY           = 5
+	SEGMENT_CAPACITY           = 10
 	MAXIMUM_NUMBER_OF_SEGMENTS = 5
 )
 
