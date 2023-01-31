@@ -3,9 +3,9 @@ package writepath
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
 	memtable "NAiSP/Structures/Memtable"
+	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
 	wal "NAiSP/Structures/WAL"
-	record "NAiSP/Structures/record"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -42,7 +42,9 @@ func (wp *WritePath) Write(record *record.Record) {
 	writtenInMem := wp.MemTable.Add(record)
 	// If nill - not flushed
 	if writtenInMem != nil {
+		// Generating new SSTable using next file suffix
 		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTION+"l0/", GenerateFileName("leveled"))
+		// Writting all data to disc
 		SStable.FormSStable(writtenInMem)
 		// Form new SsTable
 		// Check for compaction
@@ -57,15 +59,18 @@ func (wp *WritePath) Write(record *record.Record) {
 }
 
 func GenerateFileName(directory string) string {
+	// Opening directory that contains data files
 	files, err := ioutil.ReadDir(DIRECTORY + directory + L0)
 	if err != nil {
 		fmt.Println("Greska kod citanja direktorijuma: ", err)
 		log.Fatal(err)
 	}
 
+	// Last file from level 0 -> largest index
 	lastFileName := files[len(files)-1]
 	newFileName, err := strconv.Atoi(strings.Split(strings.Split(lastFileName.Name(), "_")[2], ".bin")[0])
 	newFileName += 1
 
+	// Returns file suffix containing level and index
 	return "_l0_" + strconv.FormatInt(int64(newFileName), 10)
 }

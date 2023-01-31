@@ -1,9 +1,9 @@
 package sstable
 
 import (
+	bloomfilter "NAiSP/Structures/Bloomfilter"
 	merkle "NAiSP/Structures/Merkle"
-	"NAiSP/Structures/bloomfilter"
-	"NAiSP/Structures/record"
+	record "NAiSP/Structures/Record"
 	"bufio"
 	"encoding/binary"
 	"fmt"

@@ -1,7 +1,7 @@
 package sstable
 
 import (
-	"NAiSP/Structures/record"
+	record "NAiSP/Structures/Record"
 	"bufio"
 	"encoding/binary"
 	"fmt"
