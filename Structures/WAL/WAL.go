@@ -49,10 +49,10 @@ func NewWal() *WAL {
 }
 
 // Function for adding new Record
-func (wal *WAL) AddRecord(key string, value []byte, tombstone byte) bool {
+func (wal *WAL) AddRecord(rec *record.Record) bool {
 
 	// Create record and open file for adding new record
-	rec := record.NewRecordKeyValue(key, value, tombstone)
+	// rec := record.NewRecordKeyValue(key, value, tombstone)
 	file, err := os.OpenFile(wal.CurrentLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 
 	if err != nil {
@@ -93,10 +93,11 @@ func (wal *WAL) AddRecord(key string, value []byte, tombstone byte) bool {
 }
 
 // Function for adding new Record using buffer
-func (wal *WAL) AddRecordBuffered(key string, value []byte, tombstone byte) bool {
+func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 
 	// Create record and add to buffer
-	rec := record.NewRecordKeyValue(key, value, tombstone)
+	// rec := record.NewRecordKeyValue(key, value, tombstone)
+	// tombstone := rec.GetTombStone()
 	wal.Buffer = append(wal.Buffer, rec)
 
 	// If buffer full write in memory
@@ -263,7 +264,6 @@ func (wal *WAL) RenameSegments() {
 	}
 	wal.CurrentLog = "../NAiSP/Data/Wal/wal_002.log"
 }
-
 
 // NOT FINISHED YET, WAITING FOR MMAP MECHANISM
 // Function for loading the newest log - only one that we need

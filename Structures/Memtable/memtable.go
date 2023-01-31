@@ -1,4 +1,4 @@
-package Memtable
+package memtable
 
 import (
 	btree "NAiSP/Structures/Btree"
