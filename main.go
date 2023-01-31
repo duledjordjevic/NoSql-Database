@@ -41,5 +41,5 @@ func main() {
 	// fmt.Println(rec4)
 	// fmt.Println(rec5)
 	tocTabela := sstable.NewSStableFromTOC("TOC.txt")
-	fmt.Println(tocTabela.DataTablePath, tocTabela.BloomFilterPath)
+	fmt.Println(tocTabela.DataTablePath, tocTabela.BloomFilterPath, tocTabela.IndexTablePath, tocTabela.SummaryPath)
 }
