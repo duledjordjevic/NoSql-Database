@@ -80,3 +80,12 @@ func (bf *BloomFilter) Decode(fname string) {
 	file.Close()
 
 }
+
+func (bf *BloomFilter) DecoderSSOneFile(file *os.File) {
+	decoder := gob.NewDecoder(file)
+	err2 := decoder.Decode(&bf)
+	if err2 != nil {
+		panic(err2)
+	}
+
+}
