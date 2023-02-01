@@ -4,6 +4,6 @@ func Leveled() {
 
 }
 
-func Size_tiered() {
+func SizeTiered() {
 
 }

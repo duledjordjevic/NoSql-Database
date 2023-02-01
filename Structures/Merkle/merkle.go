@@ -105,23 +105,23 @@ func (mt *MerkleTree) GenerateMerkleTree() {
 	var rest int
 	counter := 0
 
-	fmt.Println("Visina: ", mt.Height)
+	// fmt.Println("Visina: ", mt.Height)
 
 	for h := mt.Height - 1; h >= 0; h-- {
 		//	krece se od maksimalne visine -> odnsono od listova ka korenu
 
 		// broj elemenata stabla do pocetka generisanja novog nivoa
-		fmt.Println("-----------------")
-		fmt.Println("Nivo: ", h)
+		// fmt.Println("-----------------")
+		// fmt.Println("Nivo: ", h)
 
 		// velicina prethodnog nivoa
 		currentSize := len(mt.Nodes)
 		// od kog elementa krecu deca novog nivoa
 		offset := currentSize - mt.LevelCap(h+1)
 
-		fmt.Println("CurrentSize: ", currentSize)
-		fmt.Println("offset: ", offset)
-		fmt.Println("-----------------")
+		// fmt.Println("CurrentSize: ", currentSize)
+		// fmt.Println("offset: ", offset)
+		// fmt.Println("-----------------")
 
 		// u zavisnosti od offseta proveravamo parnost narednog nivoa
 		if offset%2 == 0 {
@@ -131,7 +131,7 @@ func (mt *MerkleTree) GenerateMerkleTree() {
 		}
 
 		for i := offset; i < currentSize; i++ {
-			fmt.Println("Brojac: ", counter)
+			// fmt.Println("Brojac: ", counter)
 
 			if i%2 == rest {
 				child = mt.Nodes[i]
@@ -141,7 +141,7 @@ func (mt *MerkleTree) GenerateMerkleTree() {
 				hash := Hash([]byte(data))
 				mt.Nodes = append(mt.Nodes, String(hash[:]))
 
-				fmt.Println("Normalno spajanje")
+				// fmt.Println("Normalno spajanje")
 				child = ""
 			}
 
@@ -152,10 +152,10 @@ func (mt *MerkleTree) GenerateMerkleTree() {
 			hash := Hash([]byte(child))
 			mt.Nodes = append(mt.Nodes, String(hash[:]))
 
-			fmt.Println("Spajanje neparnog")
+			// fmt.Println("Spajanje neparnog")
 		}
 	}
-	fmt.Println("Broj blokova: ", len(mt.Nodes))
+	// fmt.Println("Broj blokova: ", len(mt.Nodes))
 
 }
 

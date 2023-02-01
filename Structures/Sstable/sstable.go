@@ -2,6 +2,7 @@ package sstable
 
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
+	config "NAiSP/Structures/ConfigReader"
 	merkle "NAiSP/Structures/Merkle"
 	record "NAiSP/Structures/Record"
 	"bufio"
@@ -29,13 +30,15 @@ func NewSStable(dataTable string, indexTable string, summary string, bloom strin
 	return &sstable
 }
 
-func NewSStableAutomatic(prefix, sufix string) *SStable {
+func NewSStableAutomatic(sufix string, config *config.ConfigReader) *SStable {
+	prefix := "./Data/Data" + config.DataFileStructure + "/" + config.Compaction + "/Data/"
+	TOCprefix := "./Data/Data" + config.DataFileStructure + "/" + config.Compaction + "/Toc/"
 	sstable := SStable{DataTablePath: prefix + "data" + sufix + ".bin",
-		IndexTablePath:  "./Data/Index/" + "index" + sufix + ".bin",
-		SummaryPath:     "./Data/Summary/" + "summary" + sufix + ".bin",
-		BloomFilterPath: "./Data/Filter/" + "bloomfilter" + sufix + ".gob",
-		MetaDataPath:    "./Data/Metadata/" + "Metadata" + sufix + ".txt",
-		TOCFilePath:     "./Data/TOC/l0/" + "TOC" + sufix + ".txt"}
+		IndexTablePath:  prefix + "index" + sufix + ".bin",
+		SummaryPath:     prefix + "summary" + sufix + ".bin",
+		BloomFilterPath: prefix + "bloomfilter" + sufix + ".gob",
+		MetaDataPath:    prefix + "Metadata" + sufix + ".txt",
+		TOCFilePath:     TOCprefix + "TOC" + sufix + ".txt"}
 	return &sstable
 }
 
@@ -279,8 +282,9 @@ func (table *SStable) FormSStableTest(records *[]*record.Record) {
 	table.EncodeHelpers(bf, merkle)
 	table.CloseFiles(files)
 
-	PrintIndexTable(table.IndexTablePath)
 	PrintSummary(table.SummaryPath)
+	PrintIndexTable(table.IndexTablePath)
+
 	// PrintDataTable(table.DataTablePath)
 
 }

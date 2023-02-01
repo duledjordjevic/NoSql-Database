@@ -2,6 +2,7 @@ package writepath
 
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
+	configreader "NAiSP/Structures/ConfigReader"
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
@@ -14,10 +15,8 @@ import (
 )
 
 const (
-	DIRECTORY         = "./Data/Data/"
-	L0                = "/l0"
-	COMPACTIONleveled = "Leveled/"
-	COMPACTIONtiered  = "Size_tiered"
+	DIRECTORY   = "./Data/Data"
+	BLOOMFILTER = "/bloomfilter.gob"
 )
 
 // Store all types
@@ -25,7 +24,7 @@ type WritePath struct {
 	Wal         *wal.WAL
 	MemTable    *memtable.MemTable
 	BloomFilter *bloomfilter.BloomFilter
-	// Conifig     *configreader.ConfigReader
+	Config      *configreader.ConfigReader
 }
 
 // Write Path
@@ -42,46 +41,72 @@ func (wp *WritePath) Write(record *record.Record) {
 
 	// If WAL has written record, then write in MemTable
 	writtenInMem := wp.MemTable.Add(record)
-	// If nill - not flushed
+	// If nill -> not flushed
 	if writtenInMem != nil {
-		// for leveled
-		// if wp.Conifig.Compaction == "leveled" {
 		// Generating new SSTable using next file suffix
-		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONleveled+"l0/", GenerateFileName("leveled"))
+		directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
+
+		SStable := sstable.NewSStableAutomatic(GenerateSufix(directory, 0), wp.Config)
 		// Writting all data to disc
-		fmt.Println("Usao")
+
 		SStable.FormSStableTest(writtenInMem)
 		return
-		// }
-		// for size-tiered
-		// SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONtiered+"l0/", GenerateFileName("size_tiered"))
-		// SStable.FormSStable(writtenInMem)
-		// return
+
 	}
 
+	wp.BloomFilter.Hash(record.GetKey())
+
 	// Add to bloom if not deleted
-	wp.BloomFilter.Encode("./Data/Globalfilter/bloomfilter.gob")
-	if record.GetTombStone() == 0 {
-		fmt.Println(record.GetKey())
-		wp.BloomFilter.Hash(record.GetKey())
-	}
-	wp.BloomFilter.Decode("./Data/Globalfilter/bloomfilter.gob")
+	// wp.BloomFilter.Encode(DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + BLOOMFILTER)
+	// if record.GetTombStone() == 0 {
+	// 	wp.BloomFilter.Hash(record.GetKey())
+	// }
+	// wp.BloomFilter.Decode(DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + BLOOMFILTER)
 
 }
 
-func GenerateFileName(directory string) string {
+func GenerateSufix(directory string, level int) string {
 	// Opening directory that contains data files
-	files, err := ioutil.ReadDir(DIRECTORY + directory + L0)
+	files, err := ioutil.ReadDir(directory)
 	if err != nil {
-		fmt.Println("Greska kod citanja direktorijuma: ", err)
+		fmt.Println("Greska kod citanja direktorijuma - GenerateFileName: ", err)
 		log.Fatal(err)
 	}
 
-	// Last file from level 0 -> largest index
-	lastFileName := files[len(files)-1]
-	newFileName, err := strconv.Atoi(strings.Split(strings.Split(lastFileName.Name(), "_")[2], ".bin")[0])
+	fmt.Println("Duzina -> ", len(files))
+
+	if len(files) == 0 {
+		return "_l0_0"
+	}
+
+	last := ""
+	for _, file := range files {
+		if getLevel(file.Name()) == level {
+			last = file.Name()
+			continue
+		}
+
+		// if level < getLevel(file.Name()) && last == "" {
+		// 	return "_l" + strconv.FormatInt(int64(level), 10) + "_0"
+		// }
+
+		if getLevel(file.Name()) > level {
+			break
+		}
+	}
+
+	if last == "" {
+		return "_l" + strconv.FormatInt(int64(level), 10) + "_0"
+	}
+
+	newFileName, err := strconv.Atoi(strings.Split(strings.Split(last, "_")[2], ".bin")[0])
 	newFileName += 1
 
 	// Returns file suffix containing level and index
-	return "_l0_" + strconv.FormatInt(int64(newFileName), 10)
+	return "_l" + strconv.FormatInt(int64(level), 10) + "_" + strconv.FormatInt(int64(newFileName), 10)
+}
+
+func getLevel(filename string) int {
+	level, _ := strconv.Atoi(strings.Split(strings.Split(filename, "_")[1], "l")[1])
+	return level
 }

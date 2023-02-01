@@ -23,6 +23,7 @@ type ConfigReader struct {
 	LSMmultiplier       int           `yaml:"lsm_leveled_multiplier"`
 	TokenBucketCapacity int           `yaml:"token_bucket_capacity"`
 	TokenBucketDuration time.Duration `yaml:"token_bucket_duration"`
+	DataFileStructure   string        `yaml:"data_file_structure"`
 }
 
 func (config *ConfigReader) ReadConfig() {
@@ -35,13 +36,14 @@ func (config *ConfigReader) ReadConfig() {
 		config.MemtableTrashold = 0.8
 		config.MemtableStructure = "btree"
 		config.CacheCapacity = 5
-		config.Compaction = "leveled"
+		config.Compaction = "Leveled"
 		config.LSMLevelMax = 4
 		config.LSMlevel0Number = 8
 		config.LSMlevel1Number = 10
 		config.LSMmultiplier = 10
 		config.TokenBucketCapacity = 3
 		config.TokenBucketDuration = 3000000000
+		config.DataFileStructure = "Multiple"
 	} else {
 		err := yaml.Unmarshal(configData, &config)
 		if err != nil {

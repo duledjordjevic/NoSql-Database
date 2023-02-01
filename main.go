@@ -2,6 +2,7 @@ package main
 
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
+	configreader "NAiSP/Structures/ConfigReader"
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	wal "NAiSP/Structures/WAL"
@@ -46,10 +47,12 @@ func main() {
 	lista1 = append(lista1, test15Record)
 	lista1 = append(lista1, test16Record)
 
+	config := configreader.ConfigReader{}
+	config.ReadConfig()
 	BF := bloomfilter.BloomFilter{}
 	WAL := wal.NewWal()
 	MemTable := memtable.CreateMemtable(10, 1, "btree")
-	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF}
+	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
 	for _, record := range lista1 {
 		wp.Write(record)
 	}
