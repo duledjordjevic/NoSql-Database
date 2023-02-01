@@ -26,11 +26,11 @@ func NewSStable(dataTable string, indexTable string, summary string, bloom strin
 }
 func NewSStableAutomatic(prefix, sufix string) *SStable {
 	sstable := SStable{DataTablePath: prefix + "data" + sufix + ".bin",
-		IndexTablePath:  prefix + "index" + sufix + ".bin",
-		SummaryPath:     prefix + "summary" + sufix + ".bin",
-		BloomFilterPath: prefix + "bloomfilter" + sufix + ".gob",
-		MetaDataPath:    prefix + "Metadata" + sufix + ".txt",
-		TOCFilePath:     prefix + "TOC" + sufix + ".txt"}
+		IndexTablePath:  "./Data/Index/" + "index" + sufix + ".bin",
+		SummaryPath:     "./Data/Summury/" + "summary" + sufix + ".bin",
+		BloomFilterPath: "./Data/Filter/" + "bloomfilter" + sufix + ".gob",
+		MetaDataPath:    "./Data/Metadata/" + "Metadata" + sufix + ".txt",
+		TOCFilePath:     "./Data/TOC/l0/" + "TOC" + sufix + ".txt"}
 	return &sstable
 }
 

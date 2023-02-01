@@ -2,7 +2,6 @@ package writepath
 
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
-	configreader "NAiSP/Structures/ConfigReader"
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
@@ -26,7 +25,7 @@ type WritePath struct {
 	Wal         *wal.WAL
 	MemTable    *memtable.MemTable
 	BloomFilter *bloomfilter.BloomFilter
-	Conifig     *configreader.ConfigReader
+	// Conifig     *configreader.ConfigReader
 }
 
 // Write Path
@@ -46,23 +45,26 @@ func (wp *WritePath) Write(record *record.Record) {
 	// If nill - not flushed
 	if writtenInMem != nil {
 		// for leveled
-		if wp.Conifig.Compaction == "leveled" {
-			// Generating new SSTable using next file suffix
-			SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONleveled+"l0/", GenerateFileName("leveled"))
-			// Writting all data to disc
-			SStable.FormSStable(writtenInMem)
-			return
-		}
-		// for size-tiered
-		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONtiered+"l0/", GenerateFileName("size_tiered"))
+		// if wp.Conifig.Compaction == "leveled" {
+		// Generating new SSTable using next file suffix
+		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONleveled+"l0/", GenerateFileName("leveled"))
+		// Writting all data to disc
 		SStable.FormSStable(writtenInMem)
+		return
+		// }
+		// for size-tiered
+		// SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONtiered+"l0/", GenerateFileName("size_tiered"))
+		// SStable.FormSStable(writtenInMem)
 		return
 	}
 
 	// Add to bloom if not deleted
+	wp.BloomFilter.Encode("./Data/Globalfilter/bloomfilter.gob")
 	if record.GetTombStone() == 0 {
+		fmt.Println(record.GetKey())
 		wp.BloomFilter.Hash(record.GetKey())
 	}
+	wp.BloomFilter.Decode("./Data/Globalfilter/bloomfilter.gob")
 
 }
 

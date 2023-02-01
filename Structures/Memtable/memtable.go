@@ -61,17 +61,19 @@ func (mem *MemTable) Empty() {
 func (mem *MemTable) Find(key string) *record.Record {
 	if mem.StructName == "btree" {
 		found := mem.bTree.Search(key)
+		if found != nil {
 
-		for _, i := range found.Keys {
-			if i != nil {
-				if i.GetKey() == key {
-					if i.GetTombStone() == 1 {
-						return nil
+			for _, i := range found.Keys {
+				if i != nil {
+					if i.GetKey() == key {
+						if i.GetTombStone() == 1 {
+							return nil
+						}
+						return i
 					}
-					return i
+				} else {
+					break
 				}
-			} else {
-				break
 			}
 		}
 
