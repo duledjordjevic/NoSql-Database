@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func WriteDataTable(rec record.Record, writer *bufio.Writer) {
+func WriteDataTable(rec *record.Record, writer *bufio.Writer) {
 
 	err := binary.Write(writer, binary.BigEndian, rec.Data)
 	if err != nil {

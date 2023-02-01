@@ -49,13 +49,14 @@ func (wp *WritePath) Write(record *record.Record) {
 		// Generating new SSTable using next file suffix
 		SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONleveled+"l0/", GenerateFileName("leveled"))
 		// Writting all data to disc
-		SStable.FormSStable(writtenInMem)
+		fmt.Println("Usao")
+		SStable.FormSStableTest(writtenInMem)
 		return
 		// }
 		// for size-tiered
 		// SStable := sstable.NewSStableAutomatic(DIRECTORY+COMPACTIONtiered+"l0/", GenerateFileName("size_tiered"))
 		// SStable.FormSStable(writtenInMem)
-		return
+		// return
 	}
 
 	// Add to bloom if not deleted

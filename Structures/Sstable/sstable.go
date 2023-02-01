@@ -11,6 +11,10 @@ import (
 	"os"
 )
 
+const (
+	EXISTING = "existing.bin"
+)
+
 type SStable struct {
 	DataTablePath   string
 	IndexTablePath  string
@@ -87,7 +91,7 @@ func (table *SStable) FormSStable(records *[]*record.Record) {
 		if i == len(*records) {
 			lastRecord = *record
 		}
-		WriteDataTable(*record, writer)
+		WriteDataTable(record, writer)
 
 		index := NewIndex(record.GetKey(), uint64(currentSize))
 		index.WriteIndexTable(writerIndex)
@@ -127,9 +131,116 @@ func (table *SStable) FormSStable(records *[]*record.Record) {
 	PrintIndexTable(table.IndexTablePath)
 }
 
-// func (table *SStable) AddRecord(i int, record record.Record, fileData *os.File, fileIndex *os.File, fileSum *os.File, merkle *merkle.MerkleTree, bf *bloomfilter.BloomFilter) {
+func (table *SStable) CreateFiles() []*os.File {
+	files := make([]*os.File, 0)
+	file, err := os.Create(table.DataTablePath)
+	if err != nil {
+		fmt.Println("Error data file")
+		panic(err)
+	}
+	files = append(files, file)
 
-// }
+	file, err = os.Create(table.IndexTablePath)
+	if err != nil {
+		fmt.Println("Error index file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	file, err = os.Create(table.SummaryPath)
+	if err != nil {
+		fmt.Println("Error summary file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	file, err = os.Create(EXISTING)
+	if err != nil {
+		fmt.Println("Error existing.bin file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	return files
+}
+
+func (table *SStable) CreateWriters(files []*os.File) []*bufio.Writer {
+	writers := make([]*bufio.Writer, 0)
+	for _, file := range files {
+		writers = append(writers, bufio.NewWriter(file))
+	}
+	return writers
+}
+
+func (table *SStable) CloseFiles(files []*os.File) {
+	for _, file := range files {
+		if file.Name() == EXISTING {
+			return
+		}
+		file.Close()
+	}
+}
+
+func (table *SStable) AddRecord(counter int, offsetData uint64, offsetIndex uint64, record *record.Record,
+	bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, writers []*bufio.Writer) (uint64, uint64) {
+	// Appending elements to BloomFilter and MerkleTree
+	bf.Hash(record.GetKey())
+	merkle.AddLeaf(record.Data)
+	// First or every fifth record append to summary
+	if counter == 1 || counter%5 == 0 {
+		// Appending record to existing.bin -> temporary summary
+		recordInsertSum := NewSummary(record.GetKey(), offsetIndex)
+		// writers[3] -> summary bufio.Writer
+		recordInsertSum.WriteSummary(writers[3])
+	}
+
+	// Appending record to data file
+	// writers[0] -> data bufio.Writer
+	WriteDataTable(record, writers[0])
+
+	index := NewIndex(record.GetKey(), offsetData)
+	index.WriteIndexTable(writers[1])
+
+	// increase offset summary
+	offsetIndex += index.GetSize()
+
+	// increase offset index
+	offsetData += record.GetSize()
+
+	return offsetData, offsetIndex
+}
+
+func (table *SStable) EncodeHelpers(bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree) {
+	bf.Encode(table.BloomFilterPath)
+	merkle.GenerateMerkleTree()
+	merkle.Encode()
+	table.FormTOC()
+}
+
+func (table *SStable) CopyExistingToSummary(first *record.Record, last *record.Record, files []*os.File, writers []*bufio.Writer) {
+	files[3].Seek(0, 0)
+	// creating header for real summary
+	summary := NewSummaryHeader(first.GetKey(), last.GetKey())
+	// writers[2] -> real summary bufio.Writer
+	summary.WriteSummaryHeader(writers[2])
+
+	// copying existing.bin to real summary
+	_, err := io.Copy(files[2], files[3])
+	if err != nil {
+		fmt.Println("Error")
+		return
+	}
+	files[3].Close()
+
+	// deleting existing.bin
+	err = os.Remove("existing.bin")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+}
+
 func NewSStableFromTOC(tocFilePath string) *SStable {
 	file, err := os.Open(tocFilePath)
 	if err != nil {
@@ -145,6 +256,34 @@ func NewSStableFromTOC(tocFilePath string) *SStable {
 
 	return &SStable{DataTablePath: data[0], IndexTablePath: data[1], SummaryPath: data[2], BloomFilterPath: data[3], MetaDataPath: data[4], TOCFilePath: tocFilePath}
 }
+
+func (table *SStable) FormSStableTest(records *[]*record.Record) {
+	files := table.CreateFiles()
+	writers := table.CreateWriters(files)
+	counter := 1
+	offsetData := uint64(0)
+	offsetIndex := uint64(0)
+	bf := bloomfilter.NewBLoomFilter(100, 0.01)
+	merkle := merkle.NewMerkleTreeFile(table.MetaDataPath)
+	for _, record := range *records {
+		offsetData, offsetIndex = table.AddRecord(counter, offsetData, offsetIndex, record, bf, merkle, writers)
+		counter++
+	}
+	fmt.Println("First and Last: ")
+	first := (*records)[0]
+	fmt.Println("First -> ", first.String())
+	last := (*records)[len((*records))-1]
+	fmt.Println("Last -> ", last.String())
+	table.CopyExistingToSummary(first, last, files, writers)
+	table.EncodeHelpers(bf, merkle)
+	table.CloseFiles(files)
+
+	PrintIndexTable(table.IndexTablePath)
+	PrintSummary(table.SummaryPath)
+	// PrintDataTable(table.DataTablePath)
+
+}
+
 func (table *SStable) FormTOC() {
 	file, err := os.Create(table.TOCFilePath)
 	if err != nil {
