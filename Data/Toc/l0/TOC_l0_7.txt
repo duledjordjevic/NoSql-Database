@@ -1,5 +1,0 @@
-./Data/Data/Leveled/l0/data_l0_7.bin
-./Data/Index/index_l0_7.bin
-./Data/Summury/summary_l0_7.bin
-./Data/Filter/bloomfilter_l0_7.gob
-./Data/Metadata/Metadata_l0_7.txt
