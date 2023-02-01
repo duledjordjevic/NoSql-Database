@@ -6,7 +6,6 @@ import (
 	record "NAiSP/Structures/Record"
 	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
-	"fmt"
 )
 
 func main() {
@@ -55,6 +54,6 @@ func main() {
 		wp.Write(record)
 	}
 
-	fmt.Println(writepath.GenerateFileName("size_tiered"))
+	// fmt.Println(writepath.GenerateFileName("size_tiered"))
 
 }
