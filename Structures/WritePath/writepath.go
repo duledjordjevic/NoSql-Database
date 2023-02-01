@@ -81,7 +81,7 @@ func GenerateSufix(directory string, level int) string {
 
 	last := ""
 	for _, file := range files {
-		if getLevel(file.Name()) == level {
+		if GetLevel(file.Name()) == level {
 			last = file.Name()
 			continue
 		}
@@ -90,7 +90,7 @@ func GenerateSufix(directory string, level int) string {
 		// 	return "_l" + strconv.FormatInt(int64(level), 10) + "_0"
 		// }
 
-		if getLevel(file.Name()) > level {
+		if GetLevel(file.Name()) > level {
 			break
 		}
 	}
@@ -106,7 +106,7 @@ func GenerateSufix(directory string, level int) string {
 	return "_l" + strconv.FormatInt(int64(level), 10) + "_" + strconv.FormatInt(int64(newFileName), 10)
 }
 
-func getLevel(filename string) int {
+func GetLevel(filename string) int {
 	level, _ := strconv.Atoi(strings.Split(strings.Split(filename, "_")[1], "l")[1])
 	return level
 }
