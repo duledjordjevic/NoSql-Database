@@ -341,7 +341,7 @@ func (bTree *BTree) SplitRoot(position *Node) {
 
 }
 func (bTree *BTree) AddElement(record *record.Record) (*Node, bool) {
-	fmt.Println(record)
+	// fmt.Println(record)
 	position := bTree.Search(record.GetKey())
 
 	//tree is empty

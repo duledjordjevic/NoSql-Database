@@ -17,13 +17,16 @@ import (
 	"strings"
 )
 
-func ssRemoveFile(sufix string, dataPath string) {
+func ssRemoveFile(sufix string, dataPath string, config *configreader.ConfigReader) {
 
+	os.Remove(dataPath + "/" + "Metadata" + sufix + ".txt")
+	if config.DataFileStructure == "Single" {
+		os.Remove(dataPath + "/" + "sstable" + sufix + ".bin")
+		return
+	}
 	os.Remove(dataPath + "/" + "data" + sufix + ".bin")
 	os.Remove(dataPath + "/" + "bloomfilter" + sufix + ".gob")
 	os.Remove(dataPath + "/" + "index" + sufix + ".bin")
-	// fmt.Println(dataPath + "/" + "index" + sufix + ".bin")
-	os.Remove(dataPath + "/" + "Metadata" + sufix + ".txt")
 	os.Remove(dataPath + "/" + "summary" + sufix + ".bin")
 
 }
@@ -46,7 +49,8 @@ func SizeTiered(config *configreader.ConfigReader) {
 
 			// Check if file starts with data
 			startOfFile := strings.Split(files[i].Name(), "_")
-			if startOfFile[0]+"_"+startOfFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) {
+			if startOfFile[0]+"_"+startOfFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) &&
+				startOfFile[0]+"_"+startOfFile[1] != "sstable_l"+strconv.FormatInt(int64(j), 10) {
 				continue
 			}
 
@@ -55,8 +59,12 @@ func SizeTiered(config *configreader.ConfigReader) {
 
 			// Check next file
 			i++
+			if i == len(files) {
+				break
+			}
 			startOfNextFile := strings.Split(files[i].Name(), "_")
-			if startOfNextFile[0]+"_"+startOfNextFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) {
+			if startOfNextFile[0]+"_"+startOfNextFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) &&
+				startOfNextFile[0]+"_"+startOfNextFile[1] != "sstable_l"+strconv.FormatInt(int64(j), 10) {
 				continue
 			}
 
@@ -67,20 +75,29 @@ func SizeTiered(config *configreader.ConfigReader) {
 				// Compact
 				openData1 := lsmSizedTiered.OpenData(dataPath + "/" + data1)
 				openData2 := lsmSizedTiered.OpenData(dataPath + "/" + data2)
-				ssTable := sstable.NewSStableAutomatic(writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1), config)
-				compactSizeTired(openData1, openData2, ssTable)
+				var ssTable *sstable.SStable
+				if config.DataFileStructure == "Multiple" {
+					ssTable = sstable.NewSStableAutomatic(writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1), config)
+				} else {
+					ssTable = &sstable.SStable{
+						SStableFilePath: dataPath + "/sstable" + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".bin",
+						TOCFilePath:     tocPath + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".txt",
+						MetaDataPath:    dataPath + "/Metadata" + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".txt"}
+				}
+				compactSizeTired(openData1, openData2, ssTable, config.DataFileStructure)
 
 				sufix1 := "_" + startOfFile[1] + "_" + strings.Split(startOfFile[2], ".")[0]
 				sufix2 := "_" + startOfNextFile[1] + "_" + strings.Split(startOfNextFile[2], ".")[0]
 				openData1.Close()
 				openData2.Close()
 				// Delete files from Data
-				ssRemoveFile(sufix1, dataPath)
-				ssRemoveFile(sufix2, dataPath)
+				ssRemoveFile(sufix1, dataPath, config)
+				ssRemoveFile(sufix2, dataPath, config)
 
 				// Delete Toc files
 				os.Remove(tocPath + sufix1 + ".txt")
 				os.Remove(tocPath + sufix2 + ".txt")
+
 			}
 		}
 	}
@@ -90,7 +107,6 @@ func SizeTiered(config *configreader.ConfigReader) {
 func finishAdd(counter int, offsetData uint64, offsetIndex uint64, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree,
 	writers []*bufio.Writer, ssTable *sstable.SStable, data *os.File) *record.Record {
 	var finishRecord *record.Record
-	fmt.Println("usoooo_______________________________________________________")
 	for {
 		rec, err := record.ReadRecord(data)
 		if err == io.EOF {
@@ -102,9 +118,14 @@ func finishAdd(counter int, offsetData uint64, offsetIndex uint64, bf *bloomfilt
 
 }
 
-func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable) bool {
+func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, structures string) bool {
 
-	files := ssTable.CreateFiles()
+	var files []*os.File
+	if structures == "Multiple" {
+		files = ssTable.CreateFiles()
+	} else {
+		files = ssTable.CreateExistingFiles()
+	}
 	writers := ssTable.CreateWriters(files)
 	counter := 1
 	offsetData := uint64(0)
@@ -245,7 +266,6 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable) 
 				offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec2, bf, merkle, writers, ssTable)
 				finishRecord = rec2
 				recCheck1 = rec1
-				// recCheck2 = rec2
 
 				if !firstWriteRecord {
 					firstRecord = rec2
@@ -260,16 +280,29 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable) 
 		}
 	}
 
-	fmt.Println("First and Last: ")
-	fmt.Println("First -> ", firstRecord)
-	fmt.Println("Last -> ", finishRecord)
-	fmt.Println("Counter -> ", counter)
-	ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
-	ssTable.EncodeHelpers(bf, merkle)
-	ssTable.CloseFiles(files)
+	if structures == "Multiple" {
+		fmt.Println("First and Last: ")
+		fmt.Println("First -> ", firstRecord)
+		fmt.Println("Last -> ", finishRecord)
+		fmt.Println("Counter -> ", counter)
+		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
+		ssTable.EncodeHelpers(bf, merkle)
+		ssTable.CloseFiles(files)
+	} else {
+		fmt.Println("First and Last: ")
+		fmt.Println("First -> ", firstRecord)
+		fmt.Println("Last -> ", finishRecord)
+		fmt.Println("Counter -> ", counter)
+		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
+		ssTable.EncodeHelpersOneFile(bf, merkle)
 
-	// sstable.PrintSummary(ssTable.SummaryPath)
-	// sstable.PrintIndexTable(ssTable.IndexTablePath)
+		bloomSize, summarySize := ssTable.CalculateFileSizes(files)
+		sizes := []uint64{bloomSize, summarySize, offsetIndex}
+
+		ssTable.CopyAllandWriteHeader(sizes, files, writers)
+		ssTable.CloseFiles(files)
+
+	}
 
 	return true
 }

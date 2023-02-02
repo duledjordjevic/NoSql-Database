@@ -1,23 +1,22 @@
 package main
 
 import (
+	configreader "NAiSP/Structures/ConfigReader"
+	lsm "NAiSP/Structures/LSM"
 	record "NAiSP/Structures/Record"
-	"fmt"
-	"io"
-	"os"
 )
 
 func main() {
 	test1Record := record.NewRecordKeyValue("a", []byte{123, 31}, byte(0))
 	test2Record := record.NewRecordKeyValue("b", []byte{123, 31}, byte(0))
 	test3Record := record.NewRecordKeyValue("c", []byte{123, 31}, byte(0))
-	test4Record := record.NewRecordKeyValue("k", []byte{123, 31}, byte(0))
-	test5Record := record.NewRecordKeyValue("d", []byte{123, 31}, byte(0))
-	test6Record := record.NewRecordKeyValue("g", []byte{123, 31}, byte(0))
-	test7Record := record.NewRecordKeyValue("h", []byte{123, 31}, byte(0))
-	test8Record := record.NewRecordKeyValue("w", []byte{123, 31}, byte(0))
-	test9Record := record.NewRecordKeyValue("z", []byte{123, 31}, byte(0))
-	test10Record := record.NewRecordKeyValue("a", []byte{123, 31}, byte(0))
+	test4Record := record.NewRecordKeyValue("d", []byte{123, 31}, byte(0))
+	test5Record := record.NewRecordKeyValue("e", []byte{123, 31}, byte(0))
+	test6Record := record.NewRecordKeyValue("f", []byte{123, 31}, byte(0))
+	test7Record := record.NewRecordKeyValue("g", []byte{123, 31}, byte(0))
+	test8Record := record.NewRecordKeyValue("h", []byte{123, 31}, byte(0))
+	test9Record := record.NewRecordKeyValue("i", []byte{123, 31}, byte(0))
+	test10Record := record.NewRecordKeyValue("k", []byte{123, 31}, byte(0))
 	test11Record := record.NewRecordKeyValue("l", []byte{123, 31}, byte(0))
 	test12Record := record.NewRecordKeyValue("m", []byte{123, 31}, byte(0))
 	test13Record := record.NewRecordKeyValue("n", []byte{123, 31}, byte(0))
@@ -51,8 +50,8 @@ func main() {
 	lista1 = append(lista1, test19Record)
 	lista1 = append(lista1, test20Record)
 
-	// config := configreader.ConfigReader{}
-	// config.ReadConfig()
+	config := configreader.ConfigReader{}
+	config.ReadConfig()
 	// BF := bloomfilter.BloomFilter{}
 	// WAL := wal.NewWal()
 	// MemTable := memtable.CreateMemtable(10, 1, "btree")
@@ -66,21 +65,25 @@ func main() {
 	// 	wp.Write(tester.RandomRecord())
 	// }
 
-	// lsm.SizeTiered(&config)
+	lsm.SizeTiered(&config)
 
-	filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l2_9.bin")
-	fmt.Println(err)
-	i := 0
-	for {
-		r, err := record.ReadRecord(filr)
-		if err == io.EOF {
-			break
-		}
-		i++
-		fmt.Println(i, ". ", r)
-	}
-	fmt.Println(i)
-	filr.Close()
+	// file, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l3_12.bin")
+	// s := sstable.NewSStableFromTOC("./Data/DataSingle/Size_tiered/Toc/TOC_l0_0.txt")
+	// s.PrintSStable()
+	// sizebloom, sizesummary, sizeindex := s.ReadSStableHeader(file)
+	// file.Seek(int64(sizebloom)+int64(sizesummary)+int64(sizeindex), 1)
+	// fmt.Println(err)
+	// i := 0
+	// for {
+	// 	r, err := record.ReadRecord(file)
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// 	i++
+	// 	fmt.Println(i, ". ", r)
+	// }
+	// fmt.Println(i)
+	// file.Close()
 
 }
 
