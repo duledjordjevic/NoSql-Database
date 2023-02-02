@@ -267,10 +267,8 @@ func (table *SStable) FormSStableTest(records *[]*record.Record) {
 	table.EncodeHelpers(bf, merkle)
 	table.CloseFiles(files)
 
-	PrintSummary(table.SummaryPath)
-	PrintIndexTable(table.IndexTablePath)
-
-	// PrintDataTable(table.DataTablePath)
+	// PrintSummary(table.SummaryPath)
+	// PrintIndexTable(table.IndexTablePath)
 
 }
 

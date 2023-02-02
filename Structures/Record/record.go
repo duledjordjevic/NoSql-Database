@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,11 @@ const (
 	KEY_SIZE_START   = TOMBSTONE_START + TOMBSTONE_SIZE
 	VALUE_SIZE_START = KEY_SIZE_START + KEY_SIZE_SIZE
 	KEY_START        = VALUE_SIZE_START + VALUE_SIZE_SIZE
+
+	BLOOMFILTER    = "BF"
+	HYPERLOGLOG    = "HLL"
+	COUNTMINSKETCH = "CMS"
+	SIMHASH        = "SIM"
 )
 
 type Record struct {
@@ -101,6 +107,13 @@ func (rec *Record) GetSize() uint64 {
 func (rec *Record) CheckCRC() bool {
 	CRC := rec.GetCRC()
 	if CRC == CRC32(rec.Data[KEY_START:]) {
+		return true
+	}
+	return false
+}
+
+func (rec *Record) CheckType(structure string, username string) bool {
+	if strings.Contains(rec.GetKey(), structure) && strings.Contains(rec.GetKey(), username) {
 		return true
 	}
 	return false

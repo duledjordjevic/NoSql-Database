@@ -1,15 +1,18 @@
 package main
 
 import (
-	lsm "NAiSP/Structures/LSM"
-
-	// bloomfilter "NAiSP/Structures/Bloomfilter"
+	bloomfilter "NAiSP/Structures/Bloomfilter"
 	configreader "NAiSP/Structures/ConfigReader"
-	// memtable "NAiSP/Structures/Memtable"
-	// record "NAiSP/Structures/Record"
-	// wal "NAiSP/Structures/WAL"
-	// writepath "NAiSP/Structures/WritePath"
+	lsm "NAiSP/Structures/LSM"
+	memtable "NAiSP/Structures/Memtable"
+	record "NAiSP/Structures/Record"
+	wal "NAiSP/Structures/WAL"
+	writepath "NAiSP/Structures/WritePath"
+	tester "NAiSP/Test"
+	"fmt"
 )
+
+// tester "NAiSP/Test"
 
 func main() {
 	// test1Record := record.NewRecordKeyValue("a", []byte{123, 31}, byte(0))
@@ -51,14 +54,38 @@ func main() {
 
 	config := configreader.ConfigReader{}
 	config.ReadConfig()
-	// BF := bloomfilter.BloomFilter{}
-	// WAL := wal.NewWal()
-	// MemTable := memtable.CreateMemtable(10, 1, "btree")
-	// wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
-	// for _, record := range lista1 {
-	// 	wp.Write(record)
+
+	capacity := float64(0)
+	var record *record.Record
+
+	BF := bloomfilter.BloomFilter{}
+	WAL := wal.NewWal()
+	MemTable := memtable.CreateMemtable(10, 1, "btree")
+	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	for i := 0; i < 100; i++ {
+		record = tester.RandomRecord()
+		wp.Write(record)
+		capacity += float64(record.GetSize())
+	}
+
+	LSM := lsm.LSM{Config: &config}
+	lsm.Leveled(&LSM)
+
+	fmt.Println("Ukupan broj fajlova -> ", capacity/1024)
+
+	// path := "./Data/DataMultiple/Leveled/Data/data_l1_ABC.bin"
+	// counter := 0
+	// for {
+	// 	filepath := strings.ReplaceAll(path, "ABC", strconv.FormatInt(int64(counter), 10))
+	// 	err := tester.ReadFile(filepath)
+	// 	if err != nil {
+	// 		break
+	// 	}
+	// 	counter++
 	// }
 
+	// _ = tester.ReadFile("./Data/DataMultiple/Leveled/Data/data_l0_11.bin")
+
 	// fmt.Println(writepath.GenerateFileName("size_tiered"))
-	lsm.SizeTiered(&config)
+	// lsm.SizeTiered(&config)
 }
