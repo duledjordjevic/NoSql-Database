@@ -183,12 +183,15 @@ func (table *SStable) CreateWriters(files []*os.File) []*bufio.Writer {
 }
 
 func (table *SStable) CloseFiles(files []*os.File) {
-	for _, file := range files {
-		if file.Name() == EXISTING {
-			return
-		}
-		file.Close()
-	}
+	files[0].Close()
+	// fmt.Println(files[0].Stat())
+	files[1].Close()
+	// fmt.Println(files[1].Stat())
+	files[2].Close()
+	// fmt.Println(files[2].Stat())
+	files[3].Close()
+	// fmt.Println(files[3].Stat())
+
 }
 
 func (table *SStable) AddRecord(counter int, offsetData uint64, offsetIndex uint64, record *record.Record,

@@ -17,7 +17,7 @@ type ConfigReader struct {
 	MemtableSize        int           `yaml:"memtable_size"`
 	MemtableStructure   string        `yaml:"memtable_structure"`
 	Compaction          string        `yaml:"compaction"`
-	LSMLevelMax         int           `yaml:"lsm_level_max"`
+	LSMLevelMax         int           `yaml:"lsm_leveled_max"`
 	LSMlevel0Number     int           `yaml:"lsm_max_l0_number"`
 	LSMlevel1Number     int           `yaml:"lsm_max_l1_number"`
 	LSMmultiplier       int           `yaml:"lsm_leveled_multiplier"`
