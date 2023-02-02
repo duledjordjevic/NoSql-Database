@@ -13,7 +13,12 @@ import (
 )
 
 const (
-	EXISTING = "existing.bin"
+	EXISTING         = "existing.bin"
+	EXISTING_INDEX   = "existingIndex.bin"
+	EXISTING_DATA    = "existingData.bin"
+	EXISTING_SUMMARY = "existingSum.bin"
+	EXISTING_BLOOM   = "existingBloom.bin"
+	HEADER           = 8 + 8 + 8
 )
 
 type SStable struct {
@@ -23,10 +28,11 @@ type SStable struct {
 	BloomFilterPath string
 	MetaDataPath    string
 	TOCFilePath     string
+	SStableFilePath string
 }
 
-func NewSStable(dataTable string, indexTable string, summary string, bloom string, meta string, tocPath string) *SStable {
-	sstable := SStable{DataTablePath: dataTable, IndexTablePath: indexTable, SummaryPath: summary, BloomFilterPath: bloom, MetaDataPath: meta, TOCFilePath: tocPath}
+func NewSStable(dataTable string, indexTable string, summary string, bloom string, meta string, tocPath string, sstablePath string) *SStable {
+	sstable := SStable{DataTablePath: dataTable, IndexTablePath: indexTable, SummaryPath: summary, BloomFilterPath: bloom, MetaDataPath: meta, TOCFilePath: tocPath, SStableFilePath: sstablePath}
 	return &sstable
 }
 
@@ -221,30 +227,6 @@ func (table *SStable) EncodeHelpers(bf *bloomfilter.BloomFilter, merkle *merkle.
 	table.FormTOC()
 }
 
-func (table *SStable) CopyExistingToSummary(first *record.Record, last *record.Record, files []*os.File, writers []*bufio.Writer) {
-	files[3].Seek(0, 0)
-	// creating header for real summary
-	summary := NewSummaryHeader(first.GetKey(), last.GetKey())
-	// writers[2] -> real summary bufio.Writer
-	summary.WriteSummaryHeader(writers[2])
-
-	// copying existing.bin to real summary
-	_, err := io.Copy(files[2], files[3])
-	if err != nil {
-		fmt.Println("Error")
-		return
-	}
-	files[3].Close()
-
-	// deleting existing.bin
-	err = os.Remove("existing.bin")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-}
-
 func NewSStableFromTOC(tocFilePath string) *SStable {
 	file, err := os.Open(tocFilePath)
 	if err != nil {
@@ -304,6 +286,13 @@ func (table *SStable) FormTOC() {
 }
 
 func (table *SStable) Search(key string) *record.Record {
+
+	bf := bloomfilter.NewBLoomFilter(100, 0.01)
+	bf.Decode(table.BloomFilterPath)
+	if !bf.Find(key) {
+		return nil
+	}
+
 	file, err := os.Open(table.SummaryPath)
 	if err != nil {
 		fmt.Println("Error", err)
@@ -321,11 +310,6 @@ func (table *SStable) Search(key string) *record.Record {
 	keyMax := record.ReadKey(file, keyMaxSize)
 
 	if key >= keyMin && key <= keyMax {
-		bf := bloomfilter.NewBLoomFilter(100, 0.01)
-		bf.Decode(table.BloomFilterPath)
-		if !bf.Find(key) {
-			return nil
-		}
 
 		sumRec1, err := ReadSummary(file)
 		if err != nil {
@@ -380,6 +364,328 @@ func (table *SStable) searchRecord(key string, offset uint64) *record.Record {
 			}
 			fileData.Seek(int64(index.GetOffset()), 0)
 			record, err := record.ReadRecord(fileData)
+			if err != nil {
+				fmt.Println("Error", err)
+				return nil
+			}
+			return record
+		}
+
+	}
+
+}
+
+func (table *SStable) CreateExistingFiles() []*os.File {
+	files := make([]*os.File, 0)
+	file, err := os.Create(EXISTING_DATA)
+	if err != nil {
+		fmt.Println("Error data file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	file, err = os.Create(EXISTING_INDEX)
+	if err != nil {
+		fmt.Println("Error index file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	file, err = os.Create(EXISTING_SUMMARY)
+	if err != nil {
+		fmt.Println("Error summary file")
+		panic(err)
+	}
+	files = append(files, file)
+
+	file, err = os.Create(EXISTING)
+	if err != nil {
+		fmt.Println("Error existing.bin file")
+		panic(err)
+	}
+	files = append(files, file)
+	file, err = os.Create(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error", err)
+		panic(err)
+	}
+	files = append(files, file)
+
+	return files
+}
+
+func (table *SStable) CalculateFileSizes(files []*os.File) (a uint64, b uint64) {
+	fileBloom, err := os.Open(EXISTING_BLOOM)
+	if err != nil {
+		fmt.Println("Bloom error", err)
+		return
+	}
+	defer fileBloom.Close()
+
+	stat, err := fileBloom.Stat()
+	if err != nil {
+		fmt.Println("Stat bloom error", err)
+		return
+	}
+	bloomFileSize := stat.Size()
+
+	stat, err = files[2].Stat()
+	if err != nil {
+		fmt.Println("Stat summary error", err)
+		return
+	}
+	summarySize := stat.Size()
+
+	return uint64(bloomFileSize), uint64(summarySize)
+
+}
+
+func copyAndDelete(file *os.File, sourceFile *os.File) {
+	sourceFile.Seek(0, 0)
+
+	_, err := io.Copy(file, sourceFile)
+	if err != nil {
+		fmt.Println("Error", err)
+		return
+	}
+	sourceFile.Close()
+	err = os.Remove(sourceFile.Name())
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+}
+func (table *SStable) CopyAllandWriteHeader(sizes []uint64, files []*os.File, writers []*bufio.Writer) {
+	data := make([]byte, 0)
+	data = binary.BigEndian.AppendUint64(data, uint64(sizes[0]))
+	data = binary.BigEndian.AppendUint64(data, uint64(sizes[1]))
+	data = binary.BigEndian.AppendUint64(data, uint64(sizes[2]))
+	err := binary.Write(writers[4], binary.BigEndian, data)
+	if err != nil {
+		panic(err)
+	}
+	writers[4].Flush()
+
+	fileBloom, err := os.Open(EXISTING_BLOOM)
+	if err != nil {
+		fmt.Println("Bloom error", err)
+		return
+	}
+	defer fileBloom.Close()
+
+	copyAndDelete(files[4], fileBloom)
+	copyAndDelete(files[4], files[2])
+	copyAndDelete(files[4], files[1])
+	copyAndDelete(files[4], files[0])
+}
+func (table *SStable) EncodeHelpersOneFile(bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree) {
+	bf.Encode(EXISTING_BLOOM)
+	merkle.GenerateMerkleTree()
+	merkle.Encode()
+	table.FormTOC()
+}
+func (table *SStable) CopyExistingToSummary(first *record.Record, last *record.Record, files []*os.File, writers []*bufio.Writer) {
+	files[3].Seek(0, 0)
+	// creating header for real summary
+	summary := NewSummaryHeader(first.GetKey(), last.GetKey())
+	// writers[2] -> real summary bufio.Writer
+	summary.WriteSummaryHeader(writers[2])
+
+	// copying existing.bin to real summary
+	_, err := io.Copy(files[2], files[3])
+	if err != nil {
+		fmt.Println("Error")
+		return
+	}
+	files[3].Close()
+
+	// deleting existing.bin
+	err = os.Remove("existing.bin")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+}
+
+func (table *SStable) FormSStableOneFile(records *[]*record.Record) {
+	files := table.CreateExistingFiles()
+	writers := table.CreateWriters(files)
+	counter := 1
+	offsetData := uint64(0)
+	offsetIndex := uint64(0)
+	bf := bloomfilter.NewBLoomFilter(100, 0.01)
+	merkle := merkle.NewMerkleTreeFile(table.MetaDataPath)
+	for _, record := range *records {
+		offsetData, offsetIndex = table.AddRecord(counter, offsetData, offsetIndex, record, bf, merkle, writers)
+		counter++
+	}
+
+	first := (*records)[0]
+	last := (*records)[len((*records))-1]
+
+	table.CopyExistingToSummary(first, last, files, writers)
+	table.EncodeHelpersOneFile(bf, merkle)
+
+	bloomSize, summarySize := table.CalculateFileSizes(files)
+	sizes := []uint64{bloomSize, summarySize, offsetIndex}
+
+	table.CopyAllandWriteHeader(sizes, files, writers)
+	table.CloseFiles(files)
+
+	table.PrintSStable()
+}
+func (table *SStable) readSStableHeader(file *os.File) (uint64, uint64, uint64) {
+	bytes := make([]byte, HEADER)
+	_, err := io.ReadAtLeast(file, bytes, HEADER)
+	ret := uint64(0)
+	if err != nil {
+		fmt.Println("Error with read", err)
+		return ret, ret, ret
+	}
+	bloomSize := binary.BigEndian.Uint64(bytes[:KEY_SIZE])
+	sumSize := binary.BigEndian.Uint64(bytes[KEY_SIZE : KEY_SIZE+KEY_SIZE])
+	indexSize := binary.BigEndian.Uint64(bytes[KEY_SIZE+KEY_SIZE : KEY_SIZE+KEY_SIZE+KEY_SIZE])
+	return bloomSize, sumSize, indexSize
+}
+
+func (table *SStable) PrintSStable() {
+	file, err := os.Open(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error open sstable", err)
+		return
+	}
+	defer file.Close()
+	bloomSize, sumSize, indexSize := table.readSStableHeader(file)
+
+	file.Seek(int64(bloomSize)+HEADER, 0)
+
+	sumHeader, err := ReadSumarryHeader(file)
+	if err != nil {
+		fmt.Println("Error with summary header", err)
+		return
+	}
+	fmt.Println(sumHeader)
+	fmt.Println("=============== Summary ===============")
+	for {
+		currentPos, err := file.Seek(0, os.SEEK_CUR)
+		if err != nil {
+			fmt.Println("Error current position", err)
+			return
+		}
+
+		if bloomSize+sumSize+HEADER <= uint64(currentPos) {
+			break
+		}
+		sumRecord, err := ReadSummary(file)
+		if err != nil {
+			fmt.Println("Error with read summary", err)
+			return
+		}
+		fmt.Println(sumRecord)
+
+	}
+	fmt.Println("=============== IndexTable =============== ")
+	for {
+		currentPos, err := file.Seek(0, os.SEEK_CUR)
+		if err != nil {
+			fmt.Println("Error current position", err)
+			return
+		}
+		if HEADER+bloomSize+sumSize+indexSize <= uint64(currentPos) {
+			break
+		}
+		indexRecord, err := ReadIndexRecord(file)
+		if err != nil {
+			fmt.Println("Error with read index", err)
+			return
+		}
+		fmt.Println(indexRecord)
+
+	}
+	for {
+		dataRecord, err := record.ReadRecord(file)
+		if err != nil {
+			return
+		}
+		fmt.Println(dataRecord)
+	}
+
+}
+
+func (table *SStable) SearchOneFile(key string) *record.Record {
+	file, err := os.Open(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error open sstable", err)
+		return nil
+	}
+	defer file.Close()
+	bloomSize, sumSize, indexSize := table.readSStableHeader(file)
+
+	bf := bloomfilter.BloomFilter{}
+	bf.DecoderSSOneFile(file)
+	if !bf.Find(key) {
+		return nil
+	}
+	file.Seek(int64(bloomSize)+HEADER, 0)
+
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	keyMin := record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+
+	if key >= keyMin && key <= keyMax {
+
+		sumRec1, err := ReadSummary(file)
+		if err != nil {
+			return nil
+		}
+		for {
+
+			sumRec2, err := ReadSummary(file)
+			if err != nil && err != io.EOF {
+				return nil
+			}
+			if err == io.EOF {
+				return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
+			}
+			if key == sumRec1.GetKey() {
+				return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
+			}
+			if key == sumRec2.GetKey() {
+				return table.searchRecordOneFile(file, key, sumRec2.GetOffsetSum(), bloomSize, sumSize, indexSize)
+			}
+			if key > sumRec1.GetKey() && key < sumRec2.GetKey() {
+				return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
+			}
+			sumRec1 = sumRec2
+
+		}
+
+	} else {
+		return nil
+	}
+}
+
+func (table *SStable) searchRecordOneFile(file *os.File, key string, offset uint64, bloomSize uint64, sumSize uint64, indexSize uint64) *record.Record {
+
+	file.Seek(int64(HEADER+bloomSize+sumSize+offset), 0)
+	for {
+		index, err := ReadIndexRecord(file)
+		if err != nil {
+			fmt.Println("Error", err)
+			return nil
+		}
+		if index.GetKey() == key {
+
+			file.Seek(int64(HEADER+bloomSize+sumSize+indexSize+index.GetOffset()), 0)
+			record, err := record.ReadRecord(file)
 			if err != nil {
 				fmt.Println("Error", err)
 				return nil
