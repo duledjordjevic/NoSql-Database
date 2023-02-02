@@ -96,7 +96,7 @@ func (rec *Record) GetValue() []byte {
 }
 
 func (rec *Record) GetSize() uint64 {
-	return uint64(4 + 8 + 1 + 8 + 8 + rec.GetKeySize() + rec.GetValueSize())
+	return uint64(len(rec.Data))
 }
 func (rec *Record) CheckCRC() bool {
 	CRC := rec.GetCRC()
