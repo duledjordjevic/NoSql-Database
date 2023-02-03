@@ -1,13 +1,8 @@
 package main
 
 import (
-	bloomfilter "NAiSP/Structures/Bloomfilter"
-	configreader "NAiSP/Structures/ConfigReader"
-	lru "NAiSP/Structures/LRUcache"
-	memtable "NAiSP/Structures/Memtable"
-	readpath "NAiSP/Structures/ReadPath"
+	menu "NAiSP/Menu"
 	record "NAiSP/Structures/Record"
-	"fmt"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
 	// memtable "NAiSP/Structures/Memtable"
 	// record "NAiSP/Structures/Record"
@@ -59,56 +54,7 @@ func main() {
 	lista1 = append(lista1, test4Record)
 	lista1 = append(lista1, test5Record)
 
-	config := configreader.ConfigReader{}
-	config.ReadConfig()
-
-	BF := bloomfilter.BloomFilter{}
-	// WAL := wal.NewWal()
-	MemTable := memtable.CreateMemtable(10, 1, "btree")
-	// wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
-
-	BF.Decode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
-	lruVar := lru.NewLRUCache(10)
-	rp := readpath.ReadPath{
-		BloomFilter:  &BF,
-		MemTable:     MemTable,
-		Lru:          lruVar,
-		ConfigReader: &config,
-	}
-
-	value := rp.Read("ccNyY2")
-	fmt.Println("Vrednost: ", value)
-	value1 := rp.Read("pajce")
-	fmt.Println("Vrednost: ", value1)
-	// BF.Encode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
-
-	// for _, i := range lista1 {
-	// 	wp.Write(i)
-	// }
-
-	// s := sstable.NewSStableFromTOC("./Data/DataSingle/SizeTiered/Toc/TOC_l3_1.txt")
-	// s.PrintSStable()
-
-	// sstable.PrintIndexTable("./Data/DataMultiple/SizeTiered/Data/index_l3_1.bin")
-
-	// for i := 0; i < 1000; i++ {
-	// 	wp.Write(tester.RandomRecord())
-	// }
-	// fmt.Println(writepath.GenerateFileName("size_tiered"))
-
-	// filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l0_4.bin")
-	// fmt.Println(err)
-	// i := 0
-	// for {
-	// 	r, err := record.ReadRecord(filr)
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-	// 	i++
-	// 	fmt.Println(i, ". ", r)
-	// }
-	// fmt.Println(i)
-	// filr.Close()
-
-	// lsm.SizeTiered(&config)
+	// app := app.CreateApp()
+	// app.Start()
+	menu.ReadValue("unesi: ", []string{"1", "2", "3", "4", "5", "X"})
 }

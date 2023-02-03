@@ -20,7 +20,7 @@ func randomKey(length int, charset string) string {
 	return string(bytes)
 }
 
-func randomValue(length int) *[]byte {
+func RandomValue(length int) *[]byte {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
 	if err != nil {
@@ -31,5 +31,5 @@ func randomValue(length int) *[]byte {
 }
 
 func RandomRecord() *record.Record {
-	return record.NewRecordKeyValue(randomKey(6, charset), *randomValue(10), 0)
+	return record.NewRecordKeyValue(randomKey(6, charset), *RandomValue(10), 0)
 }
