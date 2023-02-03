@@ -197,7 +197,7 @@ func (table *SStable) CloseFiles(files []*os.File) {
 func (table *SStable) AddRecord(counter int, offsetData uint64, offsetIndex uint64, record *record.Record,
 	bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, writers []*bufio.Writer) (uint64, uint64) {
 	// Appending elements to BloomFilter and MerkleTree
-	fmt.Println("adddd", record)
+	// fmt.Println("adddd", record)
 	bf.Hash(record.GetKey())
 	merkle.AddLeaf(record.Data)
 	// First or every fifth record append to summary
@@ -266,11 +266,11 @@ func (table *SStable) FormSStableTest(records *[]*record.Record) {
 		offsetData, offsetIndex = table.AddRecord(counter, offsetData, offsetIndex, record, bf, merkle, writers)
 		counter++
 	}
-	fmt.Println("First and Last: ")
+	// fmt.Println("First and Last: ")
 	first := (*records)[0]
-	fmt.Println("First -> ", first.String())
+	// fmt.Println("First -> ", first.String())
 	last := (*records)[len((*records))-1]
-	fmt.Println("Last -> ", last.String())
+	// fmt.Println("Last -> ", last.String())
 	table.CopyExistingToSummary(first, last, files, writers)
 	table.EncodeHelpers(bf, merkle)
 	table.CloseFiles(files)
