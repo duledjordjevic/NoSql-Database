@@ -124,6 +124,7 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	} else {
 		files = ssTable.CreateExistingFiles()
 	}
+
 	writers := ssTable.CreateWriters(files)
 	counter := 1
 	offsetData := uint64(0)
@@ -150,7 +151,11 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	// da li je su predhodno rec1 = rec2
 	equalsCheck := false
 	var rec2 *record.Record
+
 	for {
+		fmt.Println("###########################")
+		fmt.Println("Offset index: ", offsetIndex)
+		fmt.Println("###########################")
 		rec1, err1 := record.ReadRecord(data1)
 
 		if err1 == io.EOF {
@@ -186,6 +191,9 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 			checkIteration = false
 		}
 		for {
+			fmt.Println("###########################")
+			fmt.Println("Offset index: ", offsetIndex)
+			fmt.Println("###########################")
 			rec2 = rec1
 			if equalsCheck {
 				rec2tmp1, err2 := record.ReadRecord(data2)
@@ -283,6 +291,8 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 		fmt.Println("First -> ", firstRecord)
 		fmt.Println("Last -> ", finishRecord)
 		fmt.Println("Counter -> ", counter)
+		fmt.Println("Offset data: ", offsetData)
+		fmt.Println("Offset index: ", offsetIndex)
 		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
 		ssTable.EncodeHelpers(bf, merkle)
 		ssTable.CloseFiles(files)
@@ -291,6 +301,8 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 		fmt.Println("First -> ", firstRecord)
 		fmt.Println("Last -> ", finishRecord)
 		fmt.Println("Counter -> ", counter)
+		fmt.Println("Offset data: ", offsetData)
+		fmt.Println("Offset index: ", offsetIndex)
 		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
 		ssTable.EncodeHelpersOneFile(bf, merkle)
 
