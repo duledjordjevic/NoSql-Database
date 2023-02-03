@@ -11,6 +11,9 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -56,7 +59,8 @@ func (rp *ReadPath) Read(key string) []byte {
 
 	for i := 0; i < rp.ConfigReader.LSMLevelMax; i++ {
 		files := getFiles(folder, i, filepath)
-		if rp.ConfigReader.Compaction == "Size_tiered" || i == 0 {
+		files = sortFiles(files)
+		if rp.ConfigReader.Compaction == "SizeTiered" || i == 0 {
 			for j := len(files) - 1; j >= 0; j-- {
 				Sstable := sstable.NewSStableFromTOC(files[j])
 				if rp.ConfigReader.DataFileStructure == "Multiple" {
@@ -106,4 +110,27 @@ func getFiles(folder []fs.FileInfo, level int, filepath string) []string {
 	}
 	return stringlist
 
+}
+
+func sortFiles(files []string) []string {
+
+	mapFiles := make(map[int]string)
+
+	// Need to store ints
+	var keys []int
+	// Need to store values
+	var values []string
+
+	for _, file := range files {
+		level, _ := strconv.Atoi(strings.Split(strings.Split(file, "_")[2], ".")[0])
+		mapFiles[level] = file
+		keys = append(keys, level)
+	}
+
+	sort.Ints(keys)
+	for _, k := range keys {
+		values = append(values, mapFiles[k])
+	}
+
+	return values
 }

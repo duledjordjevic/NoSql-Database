@@ -3,11 +3,11 @@ package main
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
 	configreader "NAiSP/Structures/ConfigReader"
+	lru "NAiSP/Structures/LRUcache"
 	memtable "NAiSP/Structures/Memtable"
+	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
-	wal "NAiSP/Structures/WAL"
-	writepath "NAiSP/Structures/WritePath"
-	tester "NAiSP/Test"
+	"fmt"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
 	// memtable "NAiSP/Structures/Memtable"
 	// record "NAiSP/Structures/Record"
@@ -63,22 +63,37 @@ func main() {
 	config.ReadConfig()
 
 	BF := bloomfilter.BloomFilter{}
-	WAL := wal.NewWal()
+	// WAL := wal.NewWal()
 	MemTable := memtable.CreateMemtable(10, 1, "btree")
-	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	// wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+
+	BF.Decode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
+	lruVar := lru.NewLRUCache(10)
+	rp := readpath.ReadPath{
+		BloomFilter:  &BF,
+		MemTable:     MemTable,
+		Lru:          lruVar,
+		ConfigReader: &config,
+	}
+
+	value := rp.Read("ccNyY2")
+	fmt.Println("Vrednost: ", value)
+	value1 := rp.Read("pajce")
+	fmt.Println("Vrednost: ", value1)
+	// BF.Encode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
 
 	// for _, i := range lista1 {
 	// 	wp.Write(i)
 	// }
 
-	// s := sstable.NewSStableFromTOC("./Data/DataSingle/Size_tiered/Toc/TOC_l3_1.txt")
+	// s := sstable.NewSStableFromTOC("./Data/DataSingle/SizeTiered/Toc/TOC_l3_1.txt")
 	// s.PrintSStable()
 
-	// sstable.PrintIndexTable("./Data/DataMultiple/Size_tiered/Data/index_l1_1.bin")
+	// sstable.PrintIndexTable("./Data/DataMultiple/SizeTiered/Data/index_l3_1.bin")
 
-	for i := 0; i < 1000; i++ {
-		wp.Write(tester.RandomRecord())
-	}
+	// for i := 0; i < 1000; i++ {
+	// 	wp.Write(tester.RandomRecord())
+	// }
 	// fmt.Println(writepath.GenerateFileName("size_tiered"))
 
 	// filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l0_4.bin")

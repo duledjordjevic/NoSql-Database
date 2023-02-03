@@ -5,14 +5,14 @@ memtable_trashold: 0.8
 memtable_size: 10
 memtable_structure: btree
 cache_capacity: 5
-compaction: Size_tiered
+compaction: SizeTiered
 lsm_leveled_max: 4
 lsm_max_l0_number: 8 
 lsm_max_l1_number: 10
 lsm_leveled_multiplier: 10   
 token_bucket_capacity: 3
 token_bucket_duration: 3000000000
-data_file_structure: Multiple
+data_file_structure: Single
 
 
 
