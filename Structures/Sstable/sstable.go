@@ -198,6 +198,7 @@ func (table *SStable) CloseFiles(files []*os.File) {
 func (table *SStable) AddRecord(counter int, offsetData uint64, offsetIndex uint64, record *record.Record,
 	bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, writers []*bufio.Writer) (uint64, uint64) {
 	// Appending elements to BloomFilter and MerkleTree
+	// fmt.Println("adddd", record)
 	bf.Hash(record.GetKey())
 	merkle.AddLeaf(record.Data)
 	// First or every fifth record append to summary

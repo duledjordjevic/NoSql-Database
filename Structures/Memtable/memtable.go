@@ -93,6 +93,7 @@ func (mem *MemTable) Find(key string) *record.Record {
 }
 
 func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
+	// fmt.Println("mem:                                        ", record)
 	if mem.StructName == "btree" {
 		elements, found := mem.bTree.AddElement(record)
 		if found {

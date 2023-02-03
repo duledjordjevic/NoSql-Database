@@ -1,0 +1,5 @@
+./Data/DataMultiple/Size_tiered/Data/data_l2_3.bin
+./Data/DataMultiple/Size_tiered/Data/index_l2_3.bin
+./Data/DataMultiple/Size_tiered/Data/summary_l2_3.bin
+./Data/DataMultiple/Size_tiered/Data/bloomfilter_l2_3.gob
+./Data/DataMultiple/Size_tiered/Data/Metadata_l2_3.txt

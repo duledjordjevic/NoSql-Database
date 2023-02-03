@@ -3,17 +3,16 @@ package main
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
 	configreader "NAiSP/Structures/ConfigReader"
-	lru "NAiSP/Structures/LRUcache"
+	lsm "NAiSP/Structures/LSM"
 	memtable "NAiSP/Structures/Memtable"
-	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
+	wal "NAiSP/Structures/WAL"
+	writepath "NAiSP/Structures/WritePath"
+	tester "NAiSP/Test"
 	"fmt"
-	// bloomfilter "NAiSP/Structures/Bloomfilter"
-	// memtable "NAiSP/Structures/Memtable"
-	// record "NAiSP/Structures/Record"
-	// wal "NAiSP/Structures/WAL"
-	// writepath "NAiSP/Structures/WritePath"
 )
+
+// tester "NAiSP/Test"
 
 func main() {
 	test1Record := record.NewRecordKeyValue("a", []byte{123, 31}, byte(0))
@@ -62,53 +61,37 @@ func main() {
 	config := configreader.ConfigReader{}
 	config.ReadConfig()
 
-	BF := bloomfilter.BloomFilter{}
-	// WAL := wal.NewWal()
-	MemTable := memtable.CreateMemtable(10, 1, "btree")
-	// wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	capacity := float64(0)
+	var record *record.Record
 
-	BF.Decode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
-	lruVar := lru.NewLRUCache(10)
-	rp := readpath.ReadPath{
-		BloomFilter:  &BF,
-		MemTable:     MemTable,
-		Lru:          lruVar,
-		ConfigReader: &config,
+	BF := bloomfilter.BloomFilter{}
+	WAL := wal.NewWal()
+	MemTable := memtable.CreateMemtable(10, 1, "btree")
+	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	for i := 0; i < 100; i++ {
+		record = tester.RandomRecord()
+		wp.Write(record)
+		capacity += float64(record.GetSize())
 	}
 
-	value := rp.Read("ccNyY2")
-	fmt.Println("Vrednost: ", value)
-	value1 := rp.Read("pajce")
-	fmt.Println("Vrednost: ", value1)
-	// BF.Encode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
+	LSM := lsm.LSM{Config: &config}
+	lsm.Leveled(&LSM)
 
-	// for _, i := range lista1 {
-	// 	wp.Write(i)
-	// }
+	fmt.Println("Ukupan broj fajlova -> ", capacity/1024)
 
-	// s := sstable.NewSStableFromTOC("./Data/DataSingle/SizeTiered/Toc/TOC_l3_1.txt")
-	// s.PrintSStable()
-
-	// sstable.PrintIndexTable("./Data/DataMultiple/SizeTiered/Data/index_l3_1.bin")
-
-	// for i := 0; i < 1000; i++ {
-	// 	wp.Write(tester.RandomRecord())
-	// }
-	// fmt.Println(writepath.GenerateFileName("size_tiered"))
-
-	// filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l0_4.bin")
-	// fmt.Println(err)
-	// i := 0
+	// path := "./Data/DataMultiple/Leveled/Data/data_l1_ABC.bin"
+	// counter := 0
 	// for {
-	// 	r, err := record.ReadRecord(filr)
-	// 	if err == io.EOF {
+	// 	filepath := strings.ReplaceAll(path, "ABC", strconv.FormatInt(int64(counter), 10))
+	// 	err := tester.ReadFile(filepath)
+	// 	if err != nil {
 	// 		break
 	// 	}
-	// 	i++
-	// 	fmt.Println(i, ". ", r)
+	// 	counter++
 	// }
-	// fmt.Println(i)
-	// filr.Close()
 
+	// _ = tester.ReadFile("./Data/DataMultiple/Leveled/Data/data_l0_11.bin")
+
+	// fmt.Println(writepath.GenerateFileName("size_tiered"))
 	// lsm.SizeTiered(&config)
 }
