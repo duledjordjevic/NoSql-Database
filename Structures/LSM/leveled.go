@@ -43,7 +43,7 @@ func Leveled(lsm *LSM) {
 			_, contains := levels[currentLevel]
 			filename := directory + "/" + file.Name()
 			if contains {
-				fmt.Println(filename)
+				// fmt.Println(filename)
 				levels[currentLevel] = append(levels[currentLevel], filename)
 				continue
 			}
@@ -66,7 +66,7 @@ func ZeroToFirst(directory string, levels *map[int][]string, lsm *LSM) {
 	iterator := 0
 
 	// every newly generated sstable will be added to this list
-	newLevel1 := make([]*sstable.SStable, 0)
+	tempSSTables := make([]*sstable.SStable, 0)
 
 	// oppening every file from level 0
 	for _, filename := range (*levels)[0] {
@@ -91,16 +91,17 @@ func ZeroToFirst(directory string, levels *map[int][]string, lsm *LSM) {
 	// if first level is empty
 	if first != nil {
 		records[first], _ = record.ReadRecord(first)
-	} else {
-		records[first] = nil
+	}
+	// file containing minimal record
+	var minimumFile *os.File
+	for key := range records {
+		minimumFile = key
+		break
 	}
 
-	// file containing minimal record
-	minimumFile := first
-
-	SSTable := NewSSTable(0, lsm)
+	SSTable := NewSSTable(0, 1, lsm)
 	files, writers, counter, offsetData, offsetIndex, bf, merkle := InitSSTable(SSTable)
-	newLevel1 = append(newLevel1, SSTable)
+	tempSSTables = append(tempSSTables, SSTable)
 
 	// necessary for generating filename
 	fileCounter := 0
@@ -109,40 +110,68 @@ func ZeroToFirst(directory string, levels *map[int][]string, lsm *LSM) {
 	currentCapacity := 0
 
 	// it will be necessary to have this info for header later
-	firstRecord := records[minimumFile]
-	lastRecord := records[minimumFile]
+	var firstRecord *record.Record
+	var lastRecord *record.Record
 
 	for {
-		// lastRecord = records[minimumFile]
 
 		if (counter0 + counter1) == 0 {
 			// calls compaction for other levels if necessary
-			if len(newLevel1) > CAPACITY {
+
+			SSTable.CopyExistingToSummary(firstRecord, lastRecord, files, writers)
+			SSTable.EncodeHelpers(bf, merkle)
+			SSTable.CloseFiles(files)
+
+			fmt.Println("Broj tempova 1 -> ", len(tempSSTables))
+			RenameLevel(tempSSTables)
+
+			if len(tempSSTables) > CAPACITY {
 				BetweenLevels(directory, levels, lsm)
 			}
 			// end of compaction
 			return
 		}
 		if counter0 == 0 && counter1 != 0 {
-			// moving remaining files to new level 1
 
+			SSTable.CopyExistingToSummary(firstRecord, lastRecord, files, writers)
+			SSTable.EncodeHelpers(bf, merkle)
+			SSTable.CloseFiles(files)
+
+			fmt.Println("Broj tempova 2 -> ", len(tempSSTables))
+
+			// moving remaining files to new level 1
+			RenameRemaining(fileCounter, (*levels)[1][iterator+1:], lsm)
 			// TODO
-			if len(newLevel1) > CAPACITY {
+
+			RenameLevel(tempSSTables)
+			if len(tempSSTables) > CAPACITY {
 				BetweenLevels(directory, levels, lsm)
 			}
 			return
 		}
 
 		// searching for the smallest key and the most fresh
+
+		if records[minimumFile] == nil {
+			fmt.Println("Ne valja minimum")
+		}
+
 		for file, record := range records {
 			if file != nil {
-				if record.GetKey() < records[minimumFile].GetKey() {
-					minimumFile = file
-				} else if record.GetKey() == records[minimumFile].GetKey() {
-					if record.GetTimeStamp() > records[minimumFile].GetTimeStamp() {
+				if records[minimumFile] != nil {
+					if record.GetKey() < records[minimumFile].GetKey() {
 						minimumFile = file
+					} else if record.GetKey() == records[minimumFile].GetKey() {
+						if record.GetTimeStamp() > records[minimumFile].GetTimeStamp() {
+							minimumFile = file
+						}
 					}
+				} else {
+					minimumFile = file
 				}
+
+				// fmt.Println(records[minimumFile], record)
+
 			}
 		}
 
@@ -159,10 +188,12 @@ func ZeroToFirst(directory string, levels *map[int][]string, lsm *LSM) {
 
 			// Initialiazing new SSTABLE -> adding last record to new SSTABLE
 			fileCounter++
-			SSTable = NewSSTable(fileCounter, lsm)
+			SSTable = NewSSTable(fileCounter, 1, lsm)
 			currentCapacity = int(records[minimumFile].GetSize())
 			// initializing all necesarry files
 			files, writers, counter, offsetData, offsetIndex, bf, merkle = InitSSTable(SSTable)
+
+			tempSSTables = append(tempSSTables, SSTable)
 
 			firstRecord = records[minimumFile]
 
@@ -172,6 +203,10 @@ func ZeroToFirst(directory string, levels *map[int][]string, lsm *LSM) {
 			// TODO
 		} else {
 			// add record
+			if firstRecord == nil {
+				firstRecord = records[minimumFile]
+			}
+
 			offsetData, offsetIndex = SSTable.AddRecord(counter, offsetData, offsetIndex, records[minimumFile], bf, merkle, writers)
 			counter++
 			// TODO
@@ -197,40 +232,27 @@ func InitSSTable(SSTable *sstable.SStable) ([]*os.File, []*bufio.Writer, int, ui
 	return files, writers, counter, offsetData, offsetIndex, bf, merkle
 }
 
-func AddRecord(SSTable *sstable.SStable) {
-
-	// for _, record := range *records {
-	// 	offsetData, offsetIndex = table.AddRecord(counter, offsetData, offsetIndex, record, bf, merkle, writers)
-	// 	counter++
-	// }
-	// fmt.Println("First and Last: ")
-	// first := (*records)[0]
-	// fmt.Println("First -> ", first.String())
-	// last := (*records)[len((*records))-1]
-	// fmt.Println("Last -> ", last.String())
-	// table.CopyExistingToSummary(first, last, files, writers)
-	// table.EncodeHelpers(bf, merkle)
-	// table.CloseFiles(files)
-
-	// PrintSummary(table.SummaryPath)
-	// PrintIndexTable(table.IndexTablePath)
-
-}
-
 // updates records map with new record -> if EOF deletes file and opens next if first
 func NextRecord(directory string, minimumFile *os.File, first *os.File, counter0 *int, counter1 *int,
 	iterator *int, records *map[*os.File]*record.Record, levels *map[int][]string, lsm *LSM) {
-	(*records)[minimumFile], _ = record.ReadRecord(minimumFile)
+
+	newRecord, _ := record.ReadRecord(minimumFile)
+
 	// EOF -> close the file and open another from level 1 if needed
-	if (*records)[minimumFile] == nil {
+	if newRecord == nil {
 
 		// open next file from level 1
 		if minimumFile == first {
 			*counter1--
 			*iterator++
-			first = lsm.OpenData((*levels)[1][*iterator])
-			(*records)[first], _ = record.ReadRecord(first)
-			minimumFile = first
+
+			if *iterator > len((*levels)[1])-1 {
+				first = nil
+
+			} else {
+				first = lsm.OpenData((*levels)[1][*iterator])
+				(*records)[first], _ = record.ReadRecord(first)
+			}
 
 		} else {
 			*counter0--
@@ -239,11 +261,126 @@ func NextRecord(directory string, minimumFile *os.File, first *os.File, counter0
 		minimumFile.Close()
 		delete(*records, minimumFile)
 
-		// file deletion
-
 		// remove all files (DATA, INDEX, SUMMARY, BF, TOC, MERKLE)
 		RemoveFile(minimumFile, lsm)
+
+		// update minimum file
+		for key := range *records {
+			minimumFile = key
+			break
+		}
+
+		fmt.Println("NOVI PRINT -> ", (*records)[minimumFile])
+
+	} else {
+		(*records)[minimumFile] = newRecord
 	}
+
+}
+
+func RenameLevel(SSTables []*sstable.SStable) {
+	var filename string
+	for _, SSTable := range SSTables {
+		filename = SSTable.DataTablePath
+		err := os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja DATA")
+		}
+
+		filename = SSTable.IndexTablePath
+		err = os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja INDEX")
+		}
+
+		filename = SSTable.SummaryPath
+		err = os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja SUMMARY")
+		}
+
+		filename = SSTable.BloomFilterPath
+		err = os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja BF")
+		}
+
+		filename = SSTable.MetaDataPath
+		err = os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja METADATA")
+		}
+
+		filename = SSTable.TOCFilePath
+		err = os.Rename(filename, strings.ReplaceAll(filename, TEMPORARY_NAME, "_"))
+		if err != nil {
+			fmt.Println("Greska kod preimenovanja TOC")
+		}
+
+	}
+}
+
+func RenameRemaining(index int, remaining []string, lsm *LSM) {
+	for _, filename := range remaining {
+		file := lsm.OpenData(filename)
+
+		oldNames := CreateNames(file.Name(), lsm)
+		// 		_l..._...
+		// _TEMP_l..._...
+		newName := strings.ReplaceAll(file.Name(), "_l", TEMPORARY_NAME+"l")
+
+		newName = ChangeIndex(newName, index)
+		index++
+
+		newNames := CreateNames(newName, lsm)
+
+		fmt.Println("Novi data -> ", newName)
+		fmt.Println("Novi index -> ", newNames[0])
+
+		for i := range newNames {
+			err := os.Rename(oldNames[i], newNames[i])
+			if err != nil {
+				fmt.Println("Greska kod preimenovanja u TEMP")
+			}
+		}
+
+		file.Close()
+
+	}
+
+}
+
+func ChangeIndex(filename string, newIndex int) string {
+
+	fmt.Println("FileName u currentu -> ", filename)
+
+	current := strings.Split(filename, "_")[3]
+
+	fmt.Println("Current pre splita po . -> ", current)
+	// trenutni nivo
+	current = strings.Split(current, ".")[0]
+	fmt.Println("Current index -> ", current)
+
+	filename = strings.ReplaceAll(filename, current, strconv.FormatInt(int64(newIndex), 10))
+
+	return filename
+}
+
+func CreateNames(filename string, lsm *LSM) []string {
+
+	index := strings.ReplaceAll(filename, "data", "index")
+	summary := strings.ReplaceAll(filename, "data", "summary")
+	bloomfilter := strings.ReplaceAll(filename, "data", "bloomfilter")
+	bloomfilter = strings.ReplaceAll(bloomfilter, ".bin", ".gob")
+	merkle := strings.ReplaceAll(filename, "data", "Metadata")
+	merkle = strings.ReplaceAll(merkle, ".bin", ".txt")
+
+	TOC := strings.ReplaceAll(filename, "data", "TOC")
+	TOC = strings.ReplaceAll(TOC, lsm.Config.Compaction+"/Data", lsm.Config.Compaction+"/Toc")
+	TOC = strings.ReplaceAll(TOC, ".bin", ".txt")
+
+	return []string{index, summary, bloomfilter, merkle, TOC}
+
 }
 
 func RemoveFile(file *os.File, lsm *LSM) {
@@ -251,7 +388,9 @@ func RemoveFile(file *os.File, lsm *LSM) {
 	// TREBA DODATI PROVERU MRTVU DA LI OVI FAJLOVI POSTOJE
 	// -> TO POGLEDAJ PA DODAJ DOLE U FUNKCIJE REMOVE-A
 	// TODO
-	data := "./Data/Data" + lsm.Config.DataFileStructure + "/" + lsm.Config.Compaction + "/Data/" + file.Name()
+	// data := PREFIX + lsm.Config.DataFileStructure + "/" + lsm.Config.Compaction + SUFIX + "/" + file.Name()
+
+	data := file.Name()
 
 	index := strings.ReplaceAll(data, "data", "index")
 	summary := strings.ReplaceAll(data, "data", "summary")
@@ -261,12 +400,14 @@ func RemoveFile(file *os.File, lsm *LSM) {
 	merkle = strings.ReplaceAll(merkle, ".bin", ".txt")
 
 	TOC := strings.ReplaceAll(data, "data", "TOC")
-	TOC = strings.ReplaceAll(TOC, lsm.Config.DataFileStructure+"/"+"Data", lsm.Config.DataFileStructure+"/"+"Toc")
+	TOC = strings.ReplaceAll(TOC, lsm.Config.Compaction+"/Data", lsm.Config.Compaction+"/Toc")
 	TOC = strings.ReplaceAll(TOC, ".bin", ".txt")
 
 	err := os.Remove(data)
 	if err != nil {
 		fmt.Println("Greska kod brisanja DATA datoteke", err)
+		fmt.Println("Ime fajla -> ", file.Name())
+		fmt.Println("DATA -> ", data)
 		return
 	}
 	err = os.Remove(index)
@@ -299,11 +440,12 @@ func RemoveFile(file *os.File, lsm *LSM) {
 	}
 }
 
-func NewSSTable(counter int, lsm *LSM) *sstable.SStable {
+func NewSSTable(counter int, level int, lsm *LSM) *sstable.SStable {
 	// directory := DIRECTORY + lsm.Config.DataFileStructure + "/" + lsm.Config.Compaction + "/Data"
 
 	// creating new SSTable -> filename format: data_TEMP_counter.bin
-	SSTable := sstable.NewSStableAutomatic(TEMPORARY_NAME+"_"+strconv.FormatInt(int64(counter), 10), lsm.Config)
+	SSTable := sstable.NewSStableAutomatic(TEMPORARY_NAME+"l"+strconv.FormatInt(int64(level), 10)+
+		"_"+strconv.FormatInt(int64(counter), 10), lsm.Config)
 	return SSTable
 }
 
