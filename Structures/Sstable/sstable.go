@@ -244,6 +244,9 @@ func NewSStableFromTOC(tocFilePath string) *SStable {
 		data = append(data, scanner.Text())
 	}
 
+	if data[0] != "" {
+		data = append(data, "")
+	}
 	return &SStable{
 		DataTablePath:   data[0],
 		IndexTablePath:  data[1],

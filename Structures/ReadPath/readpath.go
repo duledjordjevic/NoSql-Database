@@ -26,7 +26,7 @@ type ReadPath struct {
 
 func (rp *ReadPath) Read(key string) []byte {
 
-	filepath := DATAPATH + rp.ConfigReader.MemtableStructure + "/" + rp.ConfigReader.Compaction + "/"
+	filepath := DATAPATH + rp.ConfigReader.DataFileStructure + "/" + rp.ConfigReader.Compaction + "/"
 	// First check in MemTable
 	record := rp.MemTable.Find(key)
 	if record != nil {
@@ -54,7 +54,7 @@ func (rp *ReadPath) Read(key string) []byte {
 		log.Fatal(err)
 	}
 
-	for i := 0; i < rp.ConfigReader.LSMLevelMax-1; i++ {
+	for i := 0; i < rp.ConfigReader.LSMLevelMax; i++ {
 		files := getFiles(folder, i, filepath)
 		if rp.ConfigReader.Compaction == "Size_tiered" || i == 0 {
 			for j := len(files) - 1; j >= 0; j-- {
@@ -96,7 +96,7 @@ func getFiles(folder []fs.FileInfo, level int, filepath string) []string {
 	stringlist := make([]string, 0)
 	for _, file := range folder {
 		if writepath.GetLevel(file.Name()) == level {
-			filePath := filepath + file.Name()
+			filePath := filepath + "Toc/" + file.Name()
 			stringlist = append(stringlist, filePath)
 		}
 		if writepath.GetLevel(file.Name()) > level {
