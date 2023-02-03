@@ -1,6 +1,7 @@
 package main
 
 import (
+	application "NAiSP/App"
 	menu "NAiSP/Menu"
 	record "NAiSP/Structures/Record"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
@@ -54,7 +55,7 @@ func main() {
 	lista1 = append(lista1, test4Record)
 	lista1 = append(lista1, test5Record)
 
-	// app := app.CreateApp()
+	app := application.CreateApp()
 	// app.Start()
-	menu.ReadValue("unesi: ", []string{"1", "2", "3", "4", "5", "X"})
+	menu.Start(app)
 }
