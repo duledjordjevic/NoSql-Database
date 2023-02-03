@@ -576,6 +576,7 @@ func (table *SStable) PrintSStable() {
 		fmt.Println("Error with summary header", err)
 		return
 	}
+
 	fmt.Println(sumHeader)
 	fmt.Println("=============== Summary ===============")
 	for {

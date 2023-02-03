@@ -62,22 +62,37 @@ func main() {
 	config.ReadConfig()
 
 	capacity := float64(0)
-	var record *record.Record
+	var rec *record.Record
 
 	BF := bloomfilter.BloomFilter{}
 	WAL := wal.NewWal()
 	MemTable := memtable.CreateMemtable(10, 1, "btree")
 	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+
+	for _, rec = range lista1 {
+		wp.Write(rec)
+		capacity += float64(rec.GetSize())
+	}
+
+	testRecords := make([]*record.Record, 0)
+
 	for i := 0; i < 100; i++ {
-		record = tester.RandomRecord()
-		wp.Write(record)
-		capacity += float64(record.GetSize())
+		rec = tester.RandomRecord()
+		wp.Write(rec)
+		capacity += float64(rec.GetSize())
+		testRecords = append(testRecords, rec)
 	}
 
 	LSM := lsm.LSM{Config: &config}
-	lsm.Leveled(&LSM)
+	Level := lsm.NewLeveled(&config, &LSM)
+	Level.Compaction()
 
 	fmt.Println("Ukupan broj fajlova -> ", capacity/1024)
+
+	// for i, rec := range testRecords {
+	// 	fmt.Print("Test ", i)
+	// 	fmt.Println(" -> ", )
+	// }
 
 	// path := "./Data/DataMultiple/Leveled/Data/data_l1_ABC.bin"
 	// counter := 0
