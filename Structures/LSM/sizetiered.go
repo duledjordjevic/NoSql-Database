@@ -103,12 +103,12 @@ func SizeTiered(config *configreader.ConfigReader) {
 }
 
 func finishAdd(counter int, offsetData uint64, offsetIndex uint64, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree,
-	writers []*bufio.Writer, ssTable *sstable.SStable, data *os.File) *record.Record {
+	writers []*bufio.Writer, ssTable *sstable.SStable, data *os.File) (*record.Record, uint64, uint64, int) {
 	var finishRecord *record.Record
 	for {
 		rec, err := record.ReadRecord(data)
 		if err == io.EOF {
-			return finishRecord
+			return finishRecord, offsetData, offsetIndex, counter
 		}
 		finishRecord = rec
 		offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec, bf, merkle, writers, ssTable)
@@ -168,7 +168,8 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 				if recCheck2.GetKey() == rec2.GetKey() && recCheck1.GetKey() != recCheck2.GetKey() {
 					offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, recCheck2, bf, merkle, writers, ssTable)
 				}
-				chrecord := finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data2)
+				var chrecord *record.Record
+				chrecord, offsetData, offsetIndex, counter = finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data2)
 				if chrecord != nil {
 					finishRecord = chrecord
 				}
@@ -179,7 +180,8 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 		if errorCheck {
 			fmt.Println(" ovdeee 2")
 			offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec1, bf, merkle, writers, ssTable)
-			chrecord := finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data1)
+			var chrecord *record.Record
+			chrecord, offsetData, offsetIndex, counter = finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data2)
 			if chrecord != nil {
 				finishRecord = chrecord
 			}
@@ -310,6 +312,7 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 		sizes := []uint64{bloomSize, summarySize, offsetIndex}
 
 		ssTable.CopyAllandWriteHeader(sizes, files, writers)
+
 		ssTable.CloseFiles(files)
 
 	}

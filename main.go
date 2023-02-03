@@ -66,14 +66,14 @@ func main() {
 	// 	wp.Write(i)
 	// }
 
-	s := sstable.NewSStableFromTOC("./Data/DataSingle/Size_tiered/Toc/TOC_l1_1.txt")
-	s.PrintSStable()
+	// s := sstable.NewSStableFromTOC("./Data/DataSingle/Size_tiered/Toc/TOC_l3_1.txt")
+	// s.PrintSStable()
 
-	// sstable.PrintIndexTable("./Data/DataMultiple/Size_tiered/Data/index_l2_1.bin")
+	sstable.PrintIndexTable("./Data/DataMultiple/Size_tiered/Data/index_l1_1.bin")
 
-	// for i := 0; i < 20; i++ {
+	// for i := 0; i < 1000; i++ {
 	// 	wp.Write(tester.RandomRecord())
-
+	// }
 	// fmt.Println(writepath.GenerateFileName("size_tiered"))
 
 	// filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l0_4.bin")
