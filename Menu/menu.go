@@ -9,7 +9,7 @@ func PrintMenu() {
 	fmt.Println("2. Brisanje elementa")
 	fmt.Println("3. Pretraga")
 	fmt.Println("4. Ostale funkcionalnosti")
-	fmt.Println("5. Izlazak iz programa")
+	fmt.Println("X - Izlazak iz programa")
 }
 
 func PrintSearchMenu() {
@@ -18,7 +18,9 @@ func PrintSearchMenu() {
 	fmt.Println("1. Obicna pretraga")
 	fmt.Println("2. RANGE SCAN")
 	fmt.Println("3. LIST")
-	fmt.Println("4. Nazad")
+	fmt.Println("4. Kompakcija")
+	fmt.Println("5. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 }
 
 func PrintOtherMenu() {
@@ -29,6 +31,7 @@ func PrintOtherMenu() {
 	fmt.Println("3. HLL funkcionalnosti")
 	fmt.Println("4. SimHash funkcionalnosti")
 	fmt.Println("5. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 }
 
 func PrintBloomFilterMenu() {
@@ -39,6 +42,7 @@ func PrintBloomFilterMenu() {
 	fmt.Println("3. Dodavanje elementa")
 	fmt.Println("4. Provera elementa")
 	fmt.Println("5. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 
 }
 
@@ -50,6 +54,7 @@ func PrintCMSMenu() {
 	fmt.Println("3. Dodavanje elementa")
 	fmt.Println("4. Provera elementa")
 	fmt.Println("5. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 }
 
 func PrintHLLMenu() {
@@ -60,13 +65,15 @@ func PrintHLLMenu() {
 	fmt.Println("3. Dodavanje elementa")
 	fmt.Println("4. Provera kardinalnosti")
 	fmt.Println("5. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 }
 
 func PrintSimHashMenu() {
 	fmt.Println()
 	fmt.Println("-------------------- SimHash funkcionalnosti --------------------")
 	fmt.Println("1. Dodavanje novog SimHash-a u bazu")
-	fmt.Println("2. Briasnje SimHash-a iz baze")
-	fmt.Println("3. Provera sa drugom")
+	fmt.Println("2. Brisanje SimHash-a iz baze")
+	fmt.Println("3. Provera sa drugim tekstom")
 	fmt.Println("4. Nazad")
+	fmt.Println("X - Izlazak iz programa")
 }
