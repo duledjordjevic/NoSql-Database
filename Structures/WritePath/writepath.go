@@ -54,7 +54,7 @@ func (wp *WritePath) Write(record *record.Record) {
 		} else {
 			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction
 			SStable := &sstable.SStable{
-				SStableFilePath: directory + "/Data" + "/sstable" + GenerateSufix(directory+"/Data", 0) + ".bin",
+				SStableFilePath: directory + "/Data" + "/data" + GenerateSufix(directory+"/Data", 0) + ".bin",
 				TOCFilePath:     directory + "/Toc" + "/TOC" + GenerateSufix(directory+"/Data", 0) + ".txt",
 				MetaDataPath:    directory + "/Data" + "/Metadata" + GenerateSufix(directory+"/Data", 0) + ".txt"}
 

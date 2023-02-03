@@ -21,7 +21,7 @@ func ssRemoveFile(sufix string, dataPath string, config *configreader.ConfigRead
 
 	os.Remove(dataPath + "/" + "Metadata" + sufix + ".txt")
 	if config.DataFileStructure == "Single" {
-		os.Remove(dataPath + "/" + "sstable" + sufix + ".bin")
+		os.Remove(dataPath + "/" + "data" + sufix + ".bin")
 		return
 	}
 	os.Remove(dataPath + "/" + "data" + sufix + ".bin")
@@ -49,8 +49,7 @@ func SizeTiered(config *configreader.ConfigReader) {
 
 			// Check if file starts with data
 			startOfFile := strings.Split(files[i].Name(), "_")
-			if startOfFile[0]+"_"+startOfFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) &&
-				startOfFile[0]+"_"+startOfFile[1] != "sstable_l"+strconv.FormatInt(int64(j), 10) {
+			if startOfFile[0]+"_"+startOfFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) {
 				continue
 			}
 
@@ -63,8 +62,7 @@ func SizeTiered(config *configreader.ConfigReader) {
 				break
 			}
 			startOfNextFile := strings.Split(files[i].Name(), "_")
-			if startOfNextFile[0]+"_"+startOfNextFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) &&
-				startOfNextFile[0]+"_"+startOfNextFile[1] != "sstable_l"+strconv.FormatInt(int64(j), 10) {
+			if startOfNextFile[0]+"_"+startOfNextFile[1] != "data_l"+strconv.FormatInt(int64(j), 10) {
 				continue
 			}
 
@@ -80,7 +78,7 @@ func SizeTiered(config *configreader.ConfigReader) {
 					ssTable = sstable.NewSStableAutomatic(writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1), config)
 				} else {
 					ssTable = &sstable.SStable{
-						SStableFilePath: dataPath + "/sstable" + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".bin",
+						SStableFilePath: dataPath + "/data" + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".bin",
 						TOCFilePath:     tocPath + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".txt",
 						MetaDataPath:    dataPath + "/Metadata" + writepath.GenerateSufix(dataPath, writepath.GetLevel(data1)+1) + ".txt"}
 				}
