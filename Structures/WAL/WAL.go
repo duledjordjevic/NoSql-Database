@@ -263,6 +263,7 @@ func (wal *WAL) RenameSegments() {
 
 	}
 	wal.CurrentLog = "../NAiSP/Data/Wal/wal_002.log"
+	wal.MaxNumberOfSegments = 2
 }
 
 // NOT FINISHED YET, WAITING FOR MMAP MECHANISM

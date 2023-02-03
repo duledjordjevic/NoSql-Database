@@ -1,8 +1,13 @@
 package main
 
 import (
+	bloomfilter "NAiSP/Structures/Bloomfilter"
+	configreader "NAiSP/Structures/ConfigReader"
+	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
-	sstable "NAiSP/Structures/Sstable"
+	wal "NAiSP/Structures/WAL"
+	writepath "NAiSP/Structures/WritePath"
+	tester "NAiSP/Test"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
 	// memtable "NAiSP/Structures/Memtable"
 	// record "NAiSP/Structures/Record"
@@ -54,13 +59,13 @@ func main() {
 	lista1 = append(lista1, test4Record)
 	lista1 = append(lista1, test5Record)
 
-	// config := configreader.ConfigReader{}
-	// config.ReadConfig()
+	config := configreader.ConfigReader{}
+	config.ReadConfig()
 
-	// BF := bloomfilter.BloomFilter{}
-	// WAL := wal.NewWal()
-	// MemTable := memtable.CreateMemtable(10, 1, "btree")
-	// wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	BF := bloomfilter.BloomFilter{}
+	WAL := wal.NewWal()
+	MemTable := memtable.CreateMemtable(10, 1, "btree")
+	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
 
 	// for _, i := range lista1 {
 	// 	wp.Write(i)
@@ -69,11 +74,11 @@ func main() {
 	// s := sstable.NewSStableFromTOC("./Data/DataSingle/Size_tiered/Toc/TOC_l3_1.txt")
 	// s.PrintSStable()
 
-	sstable.PrintIndexTable("./Data/DataMultiple/Size_tiered/Data/index_l1_1.bin")
+	// sstable.PrintIndexTable("./Data/DataMultiple/Size_tiered/Data/index_l1_1.bin")
 
-	// for i := 0; i < 1000; i++ {
-	// 	wp.Write(tester.RandomRecord())
-	// }
+	for i := 0; i < 1000; i++ {
+		wp.Write(tester.RandomRecord())
+	}
 	// fmt.Println(writepath.GenerateFileName("size_tiered"))
 
 	// filr, err := os.Open("./Data/DataMultiple/Size_tiered/Data/data_l0_4.bin")
