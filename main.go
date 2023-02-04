@@ -2,8 +2,8 @@ package main
 
 import (
 	application "NAiSP/App"
-	menu "NAiSP/Menu"
 	record "NAiSP/Structures/Record"
+	"fmt"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
 	// memtable "NAiSP/Structures/Memtable"
 	// record "NAiSP/Structures/Record"
@@ -56,6 +56,6 @@ func main() {
 	lista1 = append(lista1, test5Record)
 
 	app := application.CreateApp()
-	// app.Start()
-	menu.Start(app)
+	// menu.Start(app)
+	fmt.Println(app.ReadValue("kucaj: "))
 }

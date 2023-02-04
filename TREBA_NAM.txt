@@ -1,0 +1,1 @@
+1.U app.Creat treba staviti velicine za bloomfilter

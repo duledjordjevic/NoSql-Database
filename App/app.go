@@ -9,7 +9,6 @@ import (
 	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
-	types "NAiSP/Structures/Types"
 	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
 	tester "NAiSP/Test"
@@ -50,9 +49,15 @@ func CreateApp() *App {
 
 	// Set atributes on app
 	app.Config = &config
-	BF := bloomfilter.BloomFilter{}
-	BF.Decode(filePath + "bloomfilter.gob")
-	app.Bloomfilter = &BF
+	var BF *bloomfilter.BloomFilter
+	fileBloom, err := os.Open(filePath + "bloomfilter.gob")
+	if err == nil {
+		BF = bloomfilter.NewBLoomFilter(1000, 0.1)
+	} else {
+		fileBloom.Close()
+		BF.Decode(filePath + "bloomfilter.gob")
+	}
+	app.Bloomfilter = BF
 
 	app.Memtable = memtable.CreateMemtable(float64(config.WalSize), config.MemtableTrashold, config.MemtableStructure)
 	app.Wal = wal.NewWal()
@@ -126,6 +131,7 @@ func (app *App) ReadValue(text string) string {
 			continue
 		}
 
+		fmt.Println(n)
 		if n == 0 || input == "" {
 			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
 			continue
@@ -300,108 +306,5 @@ func (app *App) Compaction() {
 		lsm.Leveled(nil)
 	} else {
 		lsm.SizeTiered(app.Config)
-	}
-}
-
-func (app *App) AddBloom() {
-	var expectedElements int
-	for {
-		expected := app.ReadValue("Unesite broj elemnata za koj zelite da koristite: ")
-		number, err := checkInt(expected)
-		if !err {
-			fmt.Println("Lose ste uneli broj elemenata. Probajte Ponovo.")
-			continue
-		}
-		expectedElements = number
-		break
-	}
-
-	var positiveRate float64
-	for {
-		positive := app.ReadValue("Unesite velicinu greske: ")
-		number, err := checkFloat(positive)
-		if !err {
-			fmt.Println("Lose ste velicinu greske. Probajte Ponovo.")
-			continue
-		}
-		if number > 0 && number < 1 {
-			fmt.Println("Velicina greske mora biti od 0 do 1.")
-		}
-		positiveRate = number
-		break
-
-	}
-
-	var key string
-	for {
-		keyP := app.ReadValue("Unesite kljuc po kojim ce se cuvati: ")
-		keyP = BLOOMFILTER + USER + keyP
-		value := app.ReadPath.Read(key)
-		if !check(key) {
-			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
-			continue
-		}
-		if value != nil {
-			fmt.Println("Vec postoji Bloomfilter pod ovakvim imenom. Molim vas unesite novi kljuc.")
-			continue
-		}
-		key = keyP
-		break
-
-	}
-	value := types.AddBloomFilter(expectedElements, positiveRate)
-	record := record.NewRecordKeyValue(key, value, 0)
-	app.WritePath.Write(record)
-
-}
-func (app *App) DeleteBloom() {
-
-	key := app.ReadValue("Unesite kljuc po kojim ce se cuvati: ")
-	key = BLOOMFILTER + USER + key
-	record := record.NewRecordKeyValue(key, []byte{0}, 1)
-	app.WritePath.Write(record)
-
-}
-
-func (app *App) AddElementBloom() {
-
-	var value []byte
-	var keyb string
-	for {
-		key := app.ReadValue("Unesite kljuc BloomFiltera: ")
-		key = BLOOMFILTER + USER + key
-		record := app.ReadPath.Read(key)
-		if record == nil {
-			fmt.Println("Lose ste uneli kljuc BloomFiltera ili ne postoji u bazi.")
-		}
-		value = record
-		keyb = key
-		break
-	}
-
-	elemnt := app.ReadValue("Unesite kljuc elementa kog zeliteda dodate: ")
-
-	BF := types.AppendElementBloomFilter(elemnt, value)
-	record := record.NewRecordKeyValue(keyb, BF, 0)
-	app.WritePath.Write(record)
-}
-
-func (app *App) CheckElementBloom() {
-	var value []byte
-	for {
-		key := app.ReadValue("Unesite kljuc BloomFiltera: ")
-		key = BLOOMFILTER + USER + key
-		record := app.ReadPath.Read(key)
-		if record == nil {
-			fmt.Println("Lose ste uneli kljuc BloomFiltera ili ne postoji u bazi.")
-		}
-		value = record
-		break
-	}
-	element := app.ReadValue("Unesite kljuc koji zelite da dodate: ")
-	if types.CheckElementBloomFilter(element, value) {
-		fmt.Println("Element je mozda u ovom BloomFilteru.")
-	} else {
-		fmt.Println("Element nije BloomFilterus.")
 	}
 }
