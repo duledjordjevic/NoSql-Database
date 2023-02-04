@@ -1,8 +1,10 @@
 package lsm
 
 import (
+	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
+
 	"fmt"
 	"math"
 	"os"
@@ -15,8 +17,9 @@ func (lvl *Leveled) calculateCapacity(level int) int {
 }
 
 func (lvl *Leveled) BetweenLevels(from int, to int) {
-	firstLevel := lvl.levels[from][:lvl.calculateCapacity(from)]
-	secondLevel := lvl.levels[to]
+
+	firstLevel := readpath.SortFiles(lvl.levels[from])[:lvl.calculateCapacity(from)]
+	secondLevel := readpath.SortFiles(lvl.levels[to])
 
 	// TODO -> if second level is empty -> rename first level and break the loop
 

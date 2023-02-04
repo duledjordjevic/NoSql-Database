@@ -20,7 +20,7 @@ const (
 	DIRECTORY        = "./Data/DataMultiple/Leveled/Data"
 	CAPACITY         = 5
 	TEMPORARY_NAME   = "_TEMP_"
-	SSTABLE_CAPACITY = 200
+	SSTABLE_CAPACITY = 1024
 	PREFIX           = "./Data/Data"
 	SUFIX            = "/Data"
 	PERCENT          = 0.8
@@ -148,13 +148,13 @@ func (lvl *Leveled) ZeroToFirst() {
 			SSTable.EncodeHelpers(bf, merkle)
 			SSTable.CloseFiles(files)
 
-			fmt.Println("Broj tempova 1 -> ", len(tempSSTables))
+			// fmt.Println("Broj tempova 1 -> ", len(tempSSTables))
 			lvl.RenameLevel(tempSSTables)
 
 			lvl.GenerateLevels()
 
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels(1, 2)
+				// lvl.BetweenLevels(1, 2)
 			}
 			// end of compaction
 			return
@@ -192,7 +192,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			lvl.GenerateLevels()
 			// calls between levels
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels(1, 2)
+				// lvl.BetweenLevels(1, 2)
 			}
 
 			return
@@ -201,8 +201,8 @@ func (lvl *Leveled) ZeroToFirst() {
 
 		var toDelete []*os.File
 
-		fmt.Println("Minimum file -> ", minimumFile.Name())
-		fmt.Println("RECORD ----------------> ", lvl.records[minimumFile])
+		// fmt.Println("Minimum file -> ", minimumFile.Name())
+		// fmt.Println("RECORD ----------------> ", lvl.records[minimumFile])
 
 		if lvl.records[minimumFile] == nil {
 			toDelete = append(toDelete, minimumFile)
@@ -250,18 +250,18 @@ func (lvl *Leveled) ZeroToFirst() {
 		}
 		// remove minimum file from toDelete
 
-		fmt.Println("--------------- NAKON ODABIRA MINIMUMA ---------------")
+		// fmt.Println("--------------- NAKON ODABIRA MINIMUMA ---------------")
 		for file, rec := range lvl.records {
 			fmt.Println(file.Name(), rec)
 		}
 
-		fmt.Println("Minimum file -> ", minimumFile.Name())
-		fmt.Println("RECORD ----------------> ", lvl.records[minimumFile])
+		// fmt.Println("Minimum file -> ", minimumFile.Name())
+		// fmt.Println("RECORD ----------------> ", lvl.records[minimumFile])
 
 		// delete read files
 		lvl.DeleteFiles(toDelete, minimumFile)
 
-		fmt.Println("AFTER DELETION -> ", lvl.records[minimumFile])
+		// fmt.Println("AFTER DELETION -> ", lvl.records[minimumFile])
 
 		// add minimum record to new sstable
 
