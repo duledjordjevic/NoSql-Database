@@ -26,6 +26,10 @@ const (
 	HLL         = "HLL_"
 	SH          = "SH_"
 	USER        = "SRMND_"
+	BLOOMDOWN   = 0
+	BLOOMUP     = 1
+	CMSEPSIOLON = 0.01
+	CMSDELTA    = 0.1
 )
 
 type App struct {
