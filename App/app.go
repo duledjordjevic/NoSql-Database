@@ -31,6 +31,8 @@ const (
 	BLOOMUP     = 1
 	CMSEPSIOLON = 0.1
 	CMSDELTA    = 0.9
+	HLLMIN      = 4
+	HLLMAX      = 16
 )
 
 type App struct {

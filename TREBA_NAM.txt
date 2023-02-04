@@ -1,1 +1,3 @@
 1.U app.Creat treba staviti velicine za bloomfilter
+2.zameni u hll da se ne zove unesi p
+3.Dodati rekonstukcij wall -> memtable

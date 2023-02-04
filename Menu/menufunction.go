@@ -195,13 +195,25 @@ func hllMenu(app *application.App) {
 		PrintHLLMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
+
 			// add
+			app.AddHll()
+
 		} else if input == "2" {
+
 			// delet
+			app.DeleteHLL()
+
 		} else if input == "3" {
+
 			// add element
+			app.AddElementHLL()
+
 		} else if input == "4" {
+
 			// chech
+			app.CheckCardHLL()
+
 		} else if input == "5" {
 
 			// Back
