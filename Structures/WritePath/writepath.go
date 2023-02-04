@@ -44,13 +44,23 @@ func (wp *WritePath) Write(record *record.Record) {
 	// If nill -> not flushed
 	if writtenInMem != nil {
 		// Generating new SSTable using next file suffix
-		directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
 
-		SStable := sstable.NewSStableAutomatic(GenerateSufix(directory, 0), wp.Config)
-		// Writting all data to disc
+		if wp.Config.DataFileStructure == "Multiple" {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
 
-		SStable.FormSStableTest(writtenInMem)
-		return
+			SStable := sstable.NewSStableAutomatic(GenerateSufix(directory, 0), wp.Config)
+			SStable.FormSStableTest(writtenInMem)
+
+		} else {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction
+			SStable := &sstable.SStable{
+				SStableFilePath: directory + "/Data" + "/data" + GenerateSufix(directory+"/Data", 0) + ".bin",
+				TOCFilePath:     directory + "/Toc" + "/TOC" + GenerateSufix(directory+"/Data", 0) + ".txt",
+				MetaDataPath:    directory + "/Data" + "/Metadata" + GenerateSufix(directory+"/Data", 0) + ".txt"}
+
+			SStable.FormSStableOneFile(writtenInMem)
+
+		}
 
 	}
 
@@ -88,10 +98,6 @@ func GenerateSufix(directory string, level int) string {
 			}
 			continue
 		}
-
-		// if level < getLevel(file.Name()) && last == "" {
-		// 	return "_l" + strconv.FormatInt(int64(level), 10) + "_0"
-		// }
 
 		if GetLevel(file.Name()) > level {
 			break

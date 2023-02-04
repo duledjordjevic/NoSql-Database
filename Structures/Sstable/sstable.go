@@ -136,9 +136,9 @@ func (table *SStable) FormSStable(records *[]*record.Record) {
 		fmt.Println("Error:", err)
 		return
 	}
-	PrintSummary(table.SummaryPath)
+	// PrintSummary(table.SummaryPath)
 	// PrintDataTable(table.DataTablePath)
-	PrintIndexTable(table.IndexTablePath)
+	// PrintIndexTable(table.IndexTablePath)
 }
 
 func (table *SStable) CreateFiles() []*os.File {
@@ -197,6 +197,7 @@ func (table *SStable) CloseFiles(files []*os.File) {
 func (table *SStable) AddRecord(counter int, offsetData uint64, offsetIndex uint64, record *record.Record,
 	bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, writers []*bufio.Writer) (uint64, uint64) {
 	// Appending elements to BloomFilter and MerkleTree
+	// fmt.Println("adddd", record)
 	bf.Hash(record.GetKey())
 	merkle.AddLeaf(record.Data)
 	// First or every fifth record append to summary
@@ -243,7 +244,14 @@ func NewSStableFromTOC(tocFilePath string) *SStable {
 		data = append(data, scanner.Text())
 	}
 
-	return &SStable{DataTablePath: data[0], IndexTablePath: data[1], SummaryPath: data[2], BloomFilterPath: data[3], MetaDataPath: data[4], TOCFilePath: tocFilePath}
+	return &SStable{
+		DataTablePath:   data[0],
+		IndexTablePath:  data[1],
+		SummaryPath:     data[2],
+		BloomFilterPath: data[3],
+		MetaDataPath:    data[4],
+		TOCFilePath:     tocFilePath,
+		SStableFilePath: data[5]}
 }
 
 func (table *SStable) FormSStableTest(records *[]*record.Record) {
@@ -258,17 +266,19 @@ func (table *SStable) FormSStableTest(records *[]*record.Record) {
 		offsetData, offsetIndex = table.AddRecord(counter, offsetData, offsetIndex, record, bf, merkle, writers)
 		counter++
 	}
-	fmt.Println("First and Last: ")
+	// fmt.Println("First and Last: ")
 	first := (*records)[0]
-	fmt.Println("First -> ", first.String())
+	// fmt.Println("First -> ", first.String())
 	last := (*records)[len((*records))-1]
-	fmt.Println("Last -> ", last.String())
+	// fmt.Println("Last -> ", last.String())
 	table.CopyExistingToSummary(first, last, files, writers)
 	table.EncodeHelpers(bf, merkle)
 	table.CloseFiles(files)
 
 	// PrintSummary(table.SummaryPath)
 	// PrintIndexTable(table.IndexTablePath)
+
+	// PrintDataTable(table.DataTablePath)
 
 }
 
@@ -279,7 +289,7 @@ func (table *SStable) FormTOC() {
 		return
 	}
 	defer file.Close()
-	_, err = file.WriteString(table.DataTablePath + "\n" + table.IndexTablePath + "\n" + table.SummaryPath + "\n" + table.BloomFilterPath + "\n" + table.MetaDataPath)
+	_, err = file.WriteString(table.DataTablePath + "\n" + table.IndexTablePath + "\n" + table.SummaryPath + "\n" + table.BloomFilterPath + "\n" + table.MetaDataPath + "\n" + table.SStableFilePath)
 	if err != nil {
 		fmt.Println("Error", err)
 		return
@@ -534,9 +544,9 @@ func (table *SStable) FormSStableOneFile(records *[]*record.Record) {
 	table.CopyAllandWriteHeader(sizes, files, writers)
 	table.CloseFiles(files)
 
-	table.PrintSStable()
+	// table.PrintSStable()
 }
-func (table *SStable) readSStableHeader(file *os.File) (uint64, uint64, uint64) {
+func (table *SStable) ReadSStableHeader(file *os.File) (uint64, uint64, uint64) {
 	bytes := make([]byte, HEADER)
 	_, err := io.ReadAtLeast(file, bytes, HEADER)
 	ret := uint64(0)
@@ -557,7 +567,7 @@ func (table *SStable) PrintSStable() {
 		return
 	}
 	defer file.Close()
-	bloomSize, sumSize, indexSize := table.readSStableHeader(file)
+	bloomSize, sumSize, indexSize := table.ReadSStableHeader(file)
 
 	file.Seek(int64(bloomSize)+HEADER, 0)
 
@@ -566,6 +576,7 @@ func (table *SStable) PrintSStable() {
 		fmt.Println("Error with summary header", err)
 		return
 	}
+
 	fmt.Println(sumHeader)
 	fmt.Println("=============== Summary ===============")
 	for {
@@ -621,7 +632,7 @@ func (table *SStable) SearchOneFile(key string) *record.Record {
 		return nil
 	}
 	defer file.Close()
-	bloomSize, sumSize, indexSize := table.readSStableHeader(file)
+	bloomSize, sumSize, indexSize := table.ReadSStableHeader(file)
 
 	bf := bloomfilter.BloomFilter{}
 	bf.DecoderSSOneFile(file)
