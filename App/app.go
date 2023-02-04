@@ -12,6 +12,7 @@ import (
 	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
 	tester "NAiSP/Test"
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,6 +27,10 @@ const (
 	HLL         = "HLL_"
 	SH          = "SH_"
 	USER        = "SRMND_"
+	BLOOMDOWN   = 0
+	BLOOMUP     = 1
+	CMSEPSIOLON = 0.1
+	CMSDELTA    = 0.9
 )
 
 type App struct {
@@ -123,25 +128,31 @@ func checkFloat(input string) (float64, bool) {
 
 func (app *App) ReadValue(text string) string {
 	var input string
+
 	for {
 		fmt.Print(text)
-		n, err := fmt.Scanln(&input)
+		n, err := fmt.Scan(&input)
 		if err != nil {
 			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
-			continue
-		}
+		} else if n == 0 || input == "" {
+			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
 
-		fmt.Println(n)
-		if n == 0 || input == "" {
+		} else if !check(input) {
+
 			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
-			continue
+
+		} else {
+			break
+
 		}
-		if !check(input) {
-			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
-			continue
-		}
-		break
 	}
+	return input
+}
+
+func (app *App) ReadValueSimHash(text string) string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(text)
+	input, _ := reader.ReadString('\n')
 	return input
 }
 
@@ -188,13 +199,14 @@ func (app *App) RangeScan() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
-		}
-		if number < 0 || number > len(folder) {
+		} else if number < 0 || number > len(folder) {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
+		} else {
+
+			num = number
+			break
 		}
-		num = number
-		break
 	}
 
 	SStable := sstable.NewSStableFromTOC(filepath + "Toc/" + folder[num].Name())
@@ -216,9 +228,11 @@ func (app *App) RangeScan() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
+		} else {
+
+			size = number
+			break
 		}
-		size = number
-		break
 	}
 
 	var listRecords []record.Record
@@ -260,13 +274,14 @@ func (app *App) List() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
-		}
-		if number < 0 || number > len(folder) {
+		} else if number < 0 || number > len(folder) {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
+		} else {
+
+			num = number
+			break
 		}
-		num = number
-		break
 	}
 	var size uint64
 	for {
@@ -275,9 +290,11 @@ func (app *App) List() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
+		} else {
+
+			size = number
+			break
 		}
-		size = number
-		break
 	}
 
 	SStable := sstable.NewSStableFromTOC(filepath + "Toc/" + folder[num].Name())
@@ -303,7 +320,7 @@ func (app *App) List() {
 func (app *App) Compaction() {
 	if app.Config.Compaction == "Leveled" {
 		// Dodaj kad ovi napisu
-		lsm.Leveled(nil)
+
 	} else {
 		lsm.SizeTiered(app.Config)
 	}

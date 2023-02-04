@@ -13,10 +13,10 @@ func (app *App) AddBloom() {
 		number, err := checkInt(expected)
 		if !err {
 			fmt.Println("Lose ste uneli broj elemenata. Probajte Ponovo.")
-			continue
+		} else {
+			expectedElements = number
+			break
 		}
-		expectedElements = number
-		break
 	}
 
 	var positiveRate float64
@@ -25,13 +25,13 @@ func (app *App) AddBloom() {
 		number, err := checkFloat(positive)
 		if !err {
 			fmt.Println("Lose ste velicinu greske. Probajte Ponovo.")
-			continue
-		}
-		if number > 0 && number < 1 {
+		} else if number > BLOOMDOWN && number < BLOOMUP {
 			fmt.Println("Velicina greske mora biti od 0 do 1.")
+		} else {
+
+			positiveRate = number
+			break
 		}
-		positiveRate = number
-		break
 
 	}
 
@@ -41,16 +41,12 @@ func (app *App) AddBloom() {
 		keyP = BLOOMFILTER + USER + keyP
 		value := app.ReadPath.Read(keyP)
 
-		if !check(key) {
-			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
-			continue
-		}
 		if value != nil {
 			fmt.Println("Vec postoji Bloomfilter pod ovakvim imenom. Molim vas unesite novi kljuc.")
-			continue
+		} else {
+			key = keyP
+			break
 		}
-		key = keyP
-		break
 
 	}
 	value := types.AddBloomFilter(expectedElements, positiveRate)
