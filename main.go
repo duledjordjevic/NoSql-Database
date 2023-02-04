@@ -13,7 +13,6 @@ import (
 	tester "NAiSP/Test"
 	"bytes"
 	"fmt"
-	"sort"
 	// bloomfilter "NAiSP/Structures/Bloomfilter"
 	// memtable "NAiSP/Structures/Memtable"
 	// record "NAiSP/Structures/Record"
@@ -71,7 +70,7 @@ func main() {
 	memTable := memtable.CreateMemtable(10, 1, "btree")
 	lru := lru.NewLRUCache(10)
 	BF := bloomfilter.NewBLoomFilter(1000, 0.1)
-	BF.Decode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
+	// BF.Decode("./Data/DataSingle/SizeTiered/bloomfilter.gob")
 
 	wp := writepath.WritePath{
 		Wal:         wal.NewWal(),
@@ -81,17 +80,17 @@ func main() {
 	}
 
 	list := make([]string, 0)
-	list1 := make([]string, 0)
+	// list1 := make([]string, 0)
 	// list2 := make([]string, 0)
 	// list3 := make([]string, 0)
 	novicount := 0
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 2000; i++ {
 		rec := tester.RandomRecord()
 		// fmt.Println("E napravio sam ovaj rekord: ", rec.GetKey())
 		list = append(list, rec.GetKey())
-		if len(list) <= 80 {
-			list1 = append(list1, rec.GetKey())
-		}
+		// if len(list) <= 80 {
+		// 	list1 = append(list1, rec.GetKey())
+		// }
 		// if len(list) > 80 && len(list) <= 160 {
 		// 	list2 = append(list2, rec.GetKey())
 		// }
@@ -101,7 +100,7 @@ func main() {
 		novicount++
 		wp.Write(rec)
 	}
-	sort.Sort(sort.StringSlice(list1))
+	// sort.Sort(sort.StringSlice(list1))
 	// sort.Sort(sort.StringSlice(list2))
 	// sort.Sort(sort.StringSlice(list3))
 	lsm.SizeTiered(&config)
@@ -123,7 +122,7 @@ func main() {
 		BloomFilter:  BF,
 		ConfigReader: &config,
 	}
-	BF.Encode("./Data/DataMultiple/SizeTiered/bloomfilter.gob")
+	BF.Encode("./Data/DataSingle/SizeTiered/bloomfilter.gob")
 
 	count := 0
 	for i, key := range list {
