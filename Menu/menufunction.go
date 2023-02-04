@@ -220,7 +220,10 @@ func shMenu(app *application.App) {
 		PrintSimHashMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-			// add
+
+			// Add
+			app.AddSH()
+
 		} else if input == "2" {
 			// delet
 		} else if input == "3" {
