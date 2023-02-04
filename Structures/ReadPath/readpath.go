@@ -59,7 +59,7 @@ func (rp *ReadPath) Read(key string) []byte {
 
 	for i := 0; i < rp.ConfigReader.LSMLevelMax; i++ {
 		files := getFiles(folder, i, filepath)
-		files = sortFiles(files)
+		files = SortFiles(files)
 		if rp.ConfigReader.Compaction == "SizeTiered" || i == 0 {
 			for j := len(files) - 1; j >= 0; j-- {
 				Sstable := sstable.NewSStableFromTOC(files[j])
@@ -112,7 +112,7 @@ func getFiles(folder []fs.FileInfo, level int, filepath string) []string {
 
 }
 
-func sortFiles(files []string) []string {
+func SortFiles(files []string) []string {
 
 	mapFiles := make(map[int]string)
 
