@@ -21,18 +21,21 @@ func randomKey(length int, charset string) string {
 	return string(bytes)
 }
 
-func randomValue(length int) *[]byte {
+func RandomValue(length int) *[]byte {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
 	if err != nil {
 		fmt.Println("error:", err)
 		return nil
 	}
+	if len(bytes) == 0 {
+		bytes = []byte("Trajce legenda")
+	}
 	return &bytes
 }
 
 func RandomRecord() *record.Record {
-	return record.NewRecordKeyValue(randomKey(6, charset), *randomValue(10), 0)
+	return record.NewRecordKeyValue(randomKey(6, charset), *RandomValue(10), 0)
 }
 
 func ReadFile(filename string) error {

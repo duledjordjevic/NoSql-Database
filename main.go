@@ -3,12 +3,15 @@ package main
 import (
 	bloomfilter "NAiSP/Structures/Bloomfilter"
 	configreader "NAiSP/Structures/ConfigReader"
+	lru "NAiSP/Structures/LRUcache"
 	lsm "NAiSP/Structures/LSM"
 	memtable "NAiSP/Structures/Memtable"
+	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
 	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
 	tester "NAiSP/Test"
+	"bytes"
 	"fmt"
 )
 
@@ -64,49 +67,82 @@ func main() {
 	capacity := float64(0)
 	var rec *record.Record
 
-	BF := bloomfilter.BloomFilter{}
-	WAL := wal.NewWal()
-	MemTable := memtable.CreateMemtable(10, 1, "btree")
-	wp := writepath.WritePath{Wal: WAL, MemTable: MemTable, BloomFilter: &BF, Config: &config}
+	memTable := memtable.CreateMemtable(10, 1, "btree")
+	lru := lru.NewLRUCache(10)
+	BF := bloomfilter.NewBLoomFilter(1000, 0.1)
+	// BF.Decode("./Data/DataSingle/SizeTiered/bloomfilter.gob")
 
-	for _, rec = range lista1 {
-		wp.Write(rec)
-		capacity += float64(rec.GetSize())
+	wp := writepath.WritePath{
+		Wal:         wal.NewWal(),
+		MemTable:    memTable,
+		BloomFilter: BF,
+		Config:      &config,
 	}
 
-	testRecords := make([]*record.Record, 0)
-
-	for i := 0; i < 100; i++ {
-		rec = tester.RandomRecord()
+	list := make([]string, 0)
+	// list1 := make([]string, 0)
+	// list2 := make([]string, 0)
+	// list3 := make([]string, 0)
+	novicount := 0
+	for i := 0; i < 2000; i++ {
+		rec := tester.RandomRecord()
+		// fmt.Println("E napravio sam ovaj rekord: ", rec.GetKey())
+		list = append(list, rec.GetKey())
+		// if len(list) <= 80 {
+		// 	list1 = append(list1, rec.GetKey())
+		// }
+		// if len(list) > 80 && len(list) <= 160 {
+		// 	list2 = append(list2, rec.GetKey())
+		// }
+		// if len(list) > 160 && len(list) <= 240 {
+		// 	list3 = append(list3, rec.GetKey())
+		// }
+		novicount++
 		wp.Write(rec)
-		capacity += float64(rec.GetSize())
-		testRecords = append(testRecords, rec)
 	}
-
-	LSM := lsm.LSM{Config: &config}
-	Level := lsm.NewLeveled(&config, &LSM)
-	Level.Compaction()
-
-	fmt.Println("Ukupan broj fajlova -> ", capacity/1024)
-
-	// for i, rec := range testRecords {
-	// 	fmt.Print("Test ", i)
-	// 	fmt.Println(" -> ", )
+	// sort.Sort(sort.StringSlice(list1))
+	// sort.Sort(sort.StringSlice(list2))
+	// sort.Sort(sort.StringSlice(list3))
+	lsm.SizeTiered(&config)
+	// fmt.Println("LISTA 1: ")
+	// for j, i := range list1 {
+	// 	fmt.Println("Index: ", j, " element: ", i)
 	// }
-
-	// path := "./Data/DataMultiple/Leveled/Data/data_l1_ABC.bin"
-	// counter := 0
-	// for {
-	// 	filepath := strings.ReplaceAll(path, "ABC", strconv.FormatInt(int64(counter), 10))
-	// 	err := tester.ReadFile(filepath)
-	// 	if err != nil {
-	// 		break
-	// 	}
-	// 	counter++
+	// fmt.Println("LISTA 2: ")
+	// for j, i := range list2 {
+	// 	fmt.Println("Index: ", j, " element: ", i)
 	// }
+	// fmt.Println("LISTA 3: ")
+	// for j, i := range list3 {
+	// 	fmt.Println("Index: ", j, " element: ", i)
+	// }
+	rp := readpath.ReadPath{
+		MemTable:     memTable,
+		Lru:          lru,
+		BloomFilter:  BF,
+		ConfigReader: &config,
+	}
+	BF.Encode("./Data/DataSingle/SizeTiered/bloomfilter.gob")
 
-	// _ = tester.ReadFile("./Data/DataMultiple/Leveled/Data/data_l0_11.bin")
+	count := 0
+	for i, key := range list {
+		if i%40 == 0 {
+			fmt.Println("-------------------------------------------------")
+		}
+		value := rp.Read(key)
+		fmt.Println("Indeks: ", i+1, "Za kljuc: ", key, " sam nasao vrednost: ", value)
+		if bytes.Equal(value, []byte{}) {
+			count++
+		}
+	}
+	fmt.Println("##############################")
+	fmt.Println("Broj praznih bajtova: ", count)
+	fmt.Println("##############################")
 
-	// fmt.Println(writepath.GenerateFileName("size_tiered"))
-	// lsm.SizeTiered(&config)
+	// ssTable := sstable.NewSStableFromTOC("./Data/DataMultiple/SizeTiered/Toc/TOC_l3_2.txt")
+	// sstable.PrintSummary(ssTable.SummaryPath)
+	// sstable.PrintIndexTable(ssTable.IndexTablePath)
+	// app := application.CreateApp()
+	// // app.Start()
+	// menu.Start(app)
 }
