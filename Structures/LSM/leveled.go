@@ -18,11 +18,12 @@ import (
 
 const (
 	DIRECTORY        = "./Data/DataMultiple/Leveled/Data"
-	CAPACITY         = 10
+	CAPACITY         = 5
 	TEMPORARY_NAME   = "_TEMP_"
-	SSTABLE_CAPACITY = 1024
+	SSTABLE_CAPACITY = 200
 	PREFIX           = "./Data/Data"
 	SUFIX            = "/Data"
+	PERCENT          = 0.8
 )
 
 type Leveled struct {
@@ -31,7 +32,7 @@ type Leveled struct {
 	levels    map[int][]string
 	config    *configreader.ConfigReader
 	records   map[*os.File]*record.Record
-	fromTo    map[*os.File][]int
+	fromTo    map[*os.File][]string
 }
 
 func NewLeveled(config *configreader.ConfigReader, lsm *LSM) *Leveled {
@@ -46,14 +47,18 @@ func (lvl *Leveled) GenerateLevels() {
 		log.Fatal(err)
 	}
 
+	if strings.HasSuffix(lvl.directory, "Data") {
+		lvl.directory = lvl.directory + "/"
+	}
+
 	var currentLevel int
 	for _, file := range files {
 		if strings.Contains(file.Name(), "data") && !strings.Contains(file.Name(), "Meta") {
 			currentLevel = writepath.GetLevel(file.Name())
 			_, contains := lvl.levels[currentLevel]
-			filename := lvl.directory + "/" + file.Name()
+			filename := lvl.directory + file.Name()
+			fmt.Println("FILE NAME -> ", filename)
 			if contains {
-
 				lvl.levels[currentLevel] = append(lvl.levels[currentLevel], filename)
 				continue
 			}
@@ -65,7 +70,6 @@ func (lvl *Leveled) GenerateLevels() {
 func (lvl *Leveled) Compaction() {
 
 	lvl.GenerateLevels()
-	lvl.directory = lvl.directory + "/"
 
 	_, contains := lvl.levels[0]
 	if contains {
@@ -150,7 +154,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			lvl.GenerateLevels()
 
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels(0, 1)
+				lvl.BetweenLevels(1, 2)
 			}
 			// end of compaction
 			return
@@ -160,7 +164,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			// terminal condition 2
 
 			// empty the remaining first file
-			lvl.EmptyFile(first, SSTable, currentCapacity, firstRecord, lastRecord, files, writers,
+			firstRecord, lastRecord = lvl.EmptyFile(first, SSTable, currentCapacity, firstRecord, lastRecord, files, writers,
 				bf, merkle, fileCounter, counter, offsetData, offsetIndex, tempSSTables)
 
 			// closing the last SSTable
@@ -173,7 +177,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			if iterator+1 <= len(lvl.levels[1])-1 {
 				for _, firstFile := range lvl.levels[1][iterator+1:] {
 					// rename element
-					remainingSSTable := lvl.RenameFile(fileCounter, firstFile)
+					remainingSSTable := lvl.RenameFile(fileCounter, 1, firstFile)
 					fileCounter++
 
 					// append renamed to temp
@@ -188,7 +192,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			lvl.GenerateLevels()
 			// calls between levels
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels(0, 1)
+				lvl.BetweenLevels(1, 2)
 			}
 
 			return
@@ -371,13 +375,23 @@ func (lvl *Leveled) NextRecord(minimumFile *os.File, first *os.File, counter0 *i
 
 func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCapacity int,
 	firstRecord *record.Record, lastRecord *record.Record, files []*os.File,
-	writers []*bufio.Writer, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, fileCounter int, counter int, offsetData uint64, offsetIndex uint64, tempSSTables []*sstable.SStable) {
+	writers []*bufio.Writer, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, fileCounter int, counter int, offsetData uint64, offsetIndex uint64, tempSSTables []*sstable.SStable) (*record.Record, *record.Record) {
 
 	for {
 		// terminal condition
 		nextRecord, _ := record.ReadRecord(file)
 		if nextRecord == nil {
-			return
+			// file.Close()
+			// err := os.Remove(file.Name())
+			// if err != nil {
+			// 	fmt.Println("Greska u empty file -> ", err)
+			// }
+			return firstRecord, lastRecord
+
+		}
+
+		if firstRecord == nil {
+			firstRecord = nextRecord
 		}
 
 		currentCapacity += int(nextRecord.GetSize())
@@ -437,8 +451,10 @@ func (lvl *Leveled) NewSSTable(index int, level int, isTemp bool) *sstable.SStab
 }
 
 func (lvl *Leveled) NewSSTableFromFileName(file *os.File) *sstable.SStable {
+
+	fmt.Println("FILENAME SSTABLE FROM FILE NAME -> ", file.Name())
 	names := lvl.CreateNames(file.Name())
-	return &sstable.SStable{DataTablePath: file.Name(), IndexTablePath: file.Name(), SummaryPath: file.Name(), BloomFilterPath: file.Name(), MetaDataPath: names[3], TOCFilePath: names[4], SStableFilePath: file.Name()}
+	return &sstable.SStable{DataTablePath: file.Name(), IndexTablePath: names[0], SummaryPath: names[1], BloomFilterPath: names[2], MetaDataPath: names[3], TOCFilePath: names[4], SStableFilePath: file.Name()}
 }
 
 func (lvl *Leveled) InitSSTable(SSTable *sstable.SStable) ([]*os.File, []*bufio.Writer, int, uint64, uint64, *bloomfilter.BloomFilter, *merkle.MerkleTree) {
@@ -453,7 +469,7 @@ func (lvl *Leveled) InitSSTable(SSTable *sstable.SStable) ([]*os.File, []*bufio.
 	return files, writers, counter, offsetData, offsetIndex, bf, merkle
 }
 
-func (lvl *Leveled) RenameFile(index int, filename string) *sstable.SStable {
+func (lvl *Leveled) RenameFile(index int, level int, filename string) *sstable.SStable {
 	index++
 	file := lvl.lsm.OpenData(filename)
 
@@ -464,6 +480,9 @@ func (lvl *Leveled) RenameFile(index int, filename string) *sstable.SStable {
 	newName := strings.ReplaceAll(file.Name(), "_l", TEMPORARY_NAME+"l")
 
 	newName = lvl.ChangeIndex(newName, index)
+	if level != 1 {
+		newName = lvl.ChangeLevel(newName, level)
+	}
 
 	newNames := lvl.CreateNames(newName)
 	newNames = append(newNames, newName)
@@ -532,6 +551,8 @@ func (lvl *Leveled) RenameLevel(SSTables []*sstable.SStable) {
 
 func (lvl *Leveled) CreateNames(filename string) []string {
 
+	fmt.Println("FILENAME -> ", filename)
+
 	if lvl.config.DataFileStructure == "Single" {
 		index := filename
 		summary := filename
@@ -573,6 +594,14 @@ func (lvl *Leveled) ChangeIndex(filename string, newIndex int) string {
 
 	filename = strings.ReplaceAll(filename, current+".", strconv.FormatInt(int64(newIndex), 10)+".")
 
+	return filename
+}
+
+func (lvl *Leveled) ChangeLevel(filename string, newLevel int) string {
+	current := strings.Split(filename, "_")[2]
+	current = strings.Split(current, "l")[1]
+
+	filename = strings.ReplaceAll(filename, "_l"+current+"_", "_l"+strconv.FormatInt(int64(newLevel), 10)+"_")
 	return filename
 }
 
