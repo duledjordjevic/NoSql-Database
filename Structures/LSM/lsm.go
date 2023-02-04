@@ -33,3 +33,22 @@ func (lsm *LSM) OpenData(fileName string) *os.File {
 
 	return file
 }
+
+func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) []string {
+	file, err := os.Open(SSTable.SummaryPath)
+	if err != nil {
+		fmt.Println("Error, ", err)
+	}
+
+	file.Seek(0, 0)
+
+	if lsm.Config.DataFileStructure == "Single" {
+		bloomSize, _, _ := SSTable.ReadSStableHeader(file)
+		file.Seek(int64(bloomSize), 1)
+	}
+	summaryHeader, _ := sstable.ReadSumarryHeader(file)
+	fmt.Println("MIN KEY -> ", summaryHeader.GetKeyMin())
+	fmt.Println("MAX KEY -> ", summaryHeader.GetKeyMax())
+
+	return []string{summaryHeader.GetKeyMin(), summaryHeader.GetKeyMax()}
+}

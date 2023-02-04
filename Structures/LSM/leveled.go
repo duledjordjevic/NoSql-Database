@@ -18,12 +18,12 @@ import (
 
 const (
 	DIRECTORY        = "./Data/DataMultiple/Leveled/Data"
-	CAPACITY         = 10
+	CAPACITY         = 5
 	TEMPORARY_NAME   = "_TEMP_"
-	SSTABLE_CAPACITY = 1024
+	SSTABLE_CAPACITY = 200
 	PREFIX           = "./Data/Data"
 	SUFIX            = "/Data"
-	MAX_KEY          = "■"
+	PERCENT          = 0.8
 )
 
 type Leveled struct {
@@ -32,6 +32,7 @@ type Leveled struct {
 	levels    map[int][]string
 	config    *configreader.ConfigReader
 	records   map[*os.File]*record.Record
+	fromTo    map[*os.File][]string
 }
 
 func NewLeveled(config *configreader.ConfigReader, lsm *LSM) *Leveled {
@@ -39,12 +40,15 @@ func NewLeveled(config *configreader.ConfigReader, lsm *LSM) *Leveled {
 	return &Leveled{lsm: lsm, directory: directory, config: config, levels: make(map[int][]string)}
 }
 
-func (lvl *Leveled) Compaction() {
-
+func (lvl *Leveled) GenerateLevels() {
 	files, err := ioutil.ReadDir(lvl.directory)
 	if err != nil {
 		fmt.Println("Greska kod citanja direktorijuma: ", err)
 		log.Fatal(err)
+	}
+
+	if strings.HasSuffix(lvl.directory, "Data") {
+		lvl.directory = lvl.directory + "/"
 	}
 
 	var currentLevel int
@@ -52,17 +56,21 @@ func (lvl *Leveled) Compaction() {
 		if strings.Contains(file.Name(), "data") && !strings.Contains(file.Name(), "Meta") {
 			currentLevel = writepath.GetLevel(file.Name())
 			_, contains := lvl.levels[currentLevel]
-			filename := lvl.directory + "/" + file.Name()
+			filename := lvl.directory + file.Name()
+			fmt.Println("FILE NAME -> ", filename)
 			if contains {
-
 				lvl.levels[currentLevel] = append(lvl.levels[currentLevel], filename)
 				continue
 			}
 			lvl.levels[currentLevel] = []string{filename}
 		}
 	}
-	lvl.directory = lvl.directory + "/"
-	fmt.Println("dasdd")
+}
+
+func (lvl *Leveled) Compaction() {
+
+	lvl.GenerateLevels()
+
 	_, contains := lvl.levels[0]
 	if contains {
 		lvl.ZeroToFirst()
@@ -114,7 +122,7 @@ func (lvl *Leveled) ZeroToFirst() {
 		break
 	}
 
-	SSTable := lvl.NewSSTable(0, 1)
+	SSTable := lvl.NewSSTable(0, 1, true)
 	files, writers, counter, offsetData, offsetIndex, bf, merkle := lvl.InitSSTable(SSTable)
 	tempSSTables = append(tempSSTables, SSTable)
 
@@ -143,19 +151,20 @@ func (lvl *Leveled) ZeroToFirst() {
 			fmt.Println("Broj tempova 1 -> ", len(tempSSTables))
 			lvl.RenameLevel(tempSSTables)
 
+			lvl.GenerateLevels()
+
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels()
+				lvl.BetweenLevels(1, 2)
 			}
 			// end of compaction
 			return
 		}
 		if counter0 <= 0 && counter1 != 0 {
 
-			// 0 0
-			// terminal condition 1
+			// terminal condition 2
 
 			// empty the remaining first file
-			lvl.EmptyFile(first, SSTable, currentCapacity, firstRecord, lastRecord, files, writers,
+			firstRecord, lastRecord = lvl.EmptyFile(first, SSTable, currentCapacity, firstRecord, lastRecord, files, writers,
 				bf, merkle, fileCounter, counter, offsetData, offsetIndex, tempSSTables)
 
 			// closing the last SSTable
@@ -168,7 +177,7 @@ func (lvl *Leveled) ZeroToFirst() {
 			if iterator+1 <= len(lvl.levels[1])-1 {
 				for _, firstFile := range lvl.levels[1][iterator+1:] {
 					// rename element
-					remainingSSTable := lvl.RenameFile(fileCounter, firstFile)
+					remainingSSTable := lvl.RenameFile(fileCounter, 1, firstFile)
 					fileCounter++
 
 					// append renamed to temp
@@ -180,9 +189,10 @@ func (lvl *Leveled) ZeroToFirst() {
 			// renaming temo files
 			lvl.RenameLevel(tempSSTables)
 
+			lvl.GenerateLevels()
 			// calls between levels
 			if len(tempSSTables) > CAPACITY {
-				lvl.BetweenLevels()
+				lvl.BetweenLevels(1, 2)
 			}
 
 			return
@@ -270,7 +280,7 @@ func (lvl *Leveled) ZeroToFirst() {
 
 				// Initialiazing new SSTABLE -> adding last record to new SSTABLE
 				fileCounter++
-				SSTable = lvl.NewSSTable(fileCounter, 1)
+				SSTable = lvl.NewSSTable(fileCounter, 1, true)
 				currentCapacity = int(lvl.records[minimumFile].GetSize())
 				// initializing all necesarry files
 				files, writers, counter, offsetData, offsetIndex, bf, merkle = lvl.InitSSTable(SSTable)
@@ -365,13 +375,23 @@ func (lvl *Leveled) NextRecord(minimumFile *os.File, first *os.File, counter0 *i
 
 func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCapacity int,
 	firstRecord *record.Record, lastRecord *record.Record, files []*os.File,
-	writers []*bufio.Writer, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, fileCounter int, counter int, offsetData uint64, offsetIndex uint64, tempSSTables []*sstable.SStable) {
+	writers []*bufio.Writer, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree, fileCounter int, counter int, offsetData uint64, offsetIndex uint64, tempSSTables []*sstable.SStable) (*record.Record, *record.Record) {
 
 	for {
 		// terminal condition
 		nextRecord, _ := record.ReadRecord(file)
 		if nextRecord == nil {
-			return
+			// file.Close()
+			// err := os.Remove(file.Name())
+			// if err != nil {
+			// 	fmt.Println("Greska u empty file -> ", err)
+			// }
+			return firstRecord, lastRecord
+
+		}
+
+		if firstRecord == nil {
+			firstRecord = nextRecord
 		}
 
 		currentCapacity += int(nextRecord.GetSize())
@@ -386,7 +406,7 @@ func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCa
 
 			// Initialiazing new SSTABLE -> adding last record to new SSTABLE
 			fileCounter++
-			SSTable = lvl.NewSSTable(fileCounter, 1)
+			SSTable = lvl.NewSSTable(fileCounter, 1, true)
 			currentCapacity = int(nextRecord.GetSize())
 			// initializing all necesarry files
 			files, writers, counter, offsetData, offsetIndex, bf, merkle = lvl.InitSSTable(SSTable)
@@ -416,13 +436,25 @@ func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCa
 	}
 }
 
-func (lvl *Leveled) NewSSTable(index int, level int) *sstable.SStable {
+func (lvl *Leveled) NewSSTable(index int, level int, isTemp bool) *sstable.SStable {
 	// directory := DIRECTORY + lsm.Config.DataFileStructure + "/" + lsm.Config.Compaction + "/Data"
-
+	var infix string
+	if isTemp {
+		infix = TEMPORARY_NAME
+	} else {
+		infix = ""
+	}
 	// creating new SSTable -> filename format: data_TEMP_counter.bin
-	SSTable := sstable.NewSStableAutomatic(TEMPORARY_NAME+"l"+strconv.FormatInt(int64(level), 10)+
+	SSTable := sstable.NewSStableAutomatic(infix+"l"+strconv.FormatInt(int64(level), 10)+
 		"_"+strconv.FormatInt(int64(index), 10), lvl.lsm.Config)
 	return SSTable
+}
+
+func (lvl *Leveled) NewSSTableFromFileName(file *os.File) *sstable.SStable {
+
+	fmt.Println("FILENAME SSTABLE FROM FILE NAME -> ", file.Name())
+	names := lvl.CreateNames(file.Name())
+	return &sstable.SStable{DataTablePath: file.Name(), IndexTablePath: names[0], SummaryPath: names[1], BloomFilterPath: names[2], MetaDataPath: names[3], TOCFilePath: names[4], SStableFilePath: file.Name()}
 }
 
 func (lvl *Leveled) InitSSTable(SSTable *sstable.SStable) ([]*os.File, []*bufio.Writer, int, uint64, uint64, *bloomfilter.BloomFilter, *merkle.MerkleTree) {
@@ -437,11 +469,7 @@ func (lvl *Leveled) InitSSTable(SSTable *sstable.SStable) ([]*os.File, []*bufio.
 	return files, writers, counter, offsetData, offsetIndex, bf, merkle
 }
 
-func (lvl *Leveled) BetweenLevels() {
-	fmt.Println("----- BetweenLevels -----")
-}
-
-func (lvl *Leveled) RenameFile(index int, filename string) *sstable.SStable {
+func (lvl *Leveled) RenameFile(index int, level int, filename string) *sstable.SStable {
 	index++
 	file := lvl.lsm.OpenData(filename)
 
@@ -452,6 +480,9 @@ func (lvl *Leveled) RenameFile(index int, filename string) *sstable.SStable {
 	newName := strings.ReplaceAll(file.Name(), "_l", TEMPORARY_NAME+"l")
 
 	newName = lvl.ChangeIndex(newName, index)
+	if level != 1 {
+		newName = lvl.ChangeLevel(newName, level)
+	}
 
 	newNames := lvl.CreateNames(newName)
 	newNames = append(newNames, newName)
@@ -520,6 +551,22 @@ func (lvl *Leveled) RenameLevel(SSTables []*sstable.SStable) {
 
 func (lvl *Leveled) CreateNames(filename string) []string {
 
+	fmt.Println("FILENAME -> ", filename)
+
+	if lvl.config.DataFileStructure == "Single" {
+		index := filename
+		summary := filename
+		bloomfilter := filename
+
+		merkle := strings.ReplaceAll(filename, "data", "Metadata")
+		merkle = strings.ReplaceAll(merkle, ".bin", ".txt")
+
+		TOC := strings.ReplaceAll(filename, "data", "TOC")
+		TOC = strings.ReplaceAll(TOC, lvl.config.Compaction+"/Data", lvl.config.Compaction+"/Toc")
+		TOC = strings.ReplaceAll(TOC, ".bin", ".txt")
+		return []string{index, summary, bloomfilter, merkle, TOC}
+	}
+
 	index := strings.ReplaceAll(filename, "data", "index")
 	summary := strings.ReplaceAll(filename, "data", "summary")
 	bloomfilter := strings.ReplaceAll(filename, "data", "bloomfilter")
@@ -547,6 +594,14 @@ func (lvl *Leveled) ChangeIndex(filename string, newIndex int) string {
 
 	filename = strings.ReplaceAll(filename, current+".", strconv.FormatInt(int64(newIndex), 10)+".")
 
+	return filename
+}
+
+func (lvl *Leveled) ChangeLevel(filename string, newLevel int) string {
+	current := strings.Split(filename, "_")[2]
+	current = strings.Split(current, "l")[1]
+
+	filename = strings.ReplaceAll(filename, "_l"+current+"_", "_l"+strconv.FormatInt(int64(newLevel), 10)+"_")
 	return filename
 }
 
