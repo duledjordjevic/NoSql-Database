@@ -105,13 +105,16 @@ func SizeTiered(config *configreader.ConfigReader) {
 func finishAdd(counter int, offsetData uint64, offsetIndex uint64, bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree,
 	writers []*bufio.Writer, ssTable *sstable.SStable, data *os.File) (*record.Record, uint64, uint64, int) {
 	var finishRecord *record.Record
+	// fmt.Println("USAO SAM U FINISH ADD: ")
 	for {
 		rec, err := record.ReadRecord(data)
 		if err == io.EOF {
+			// fmt.Println("MOZDA JE OVO ZADNJI: ", rec)
 			return finishRecord, offsetData, offsetIndex, counter
 		}
 		finishRecord = rec
 		offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec, bf, merkle, writers, ssTable)
+		// fmt.Println("FINISH ADD: ", rec)
 	}
 
 }
@@ -129,7 +132,7 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	counter := 1
 	offsetData := uint64(0)
 	offsetIndex := uint64(0)
-	bf := bloomfilter.NewBLoomFilter(100, 0.01)
+	bf := bloomfilter.NewBLoomFilter(1000, 0.01)
 	merkle := merkle.NewMerkleTreeFile(ssTable.MetaDataPath)
 
 	var firstRecord *record.Record
@@ -153,20 +156,21 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	var rec2 *record.Record
 
 	for {
-		fmt.Println("###########################")
-		fmt.Println("Offset index: ", offsetIndex)
-		fmt.Println("###########################")
+		// fmt.Println("###########################")
+		// fmt.Println("Offset index: ", offsetIndex)
+		// fmt.Println("###########################")
 		rec1, err1 := record.ReadRecord(data1)
 
 		if err1 == io.EOF {
 			// zavrsi upis samo sa drugom
 			if !errorCheck {
-				fmt.Println(" ovdeee 1")
-				fmt.Println(recCheck1)
-				fmt.Println(recCheck2)
-				fmt.Println(rec2)
+				// fmt.Println(" ovdeee 1")
+				// fmt.Println(recCheck1)
+				// fmt.Println(recCheck2)
+				// fmt.Println(rec2)
 				if recCheck2.GetKey() == rec2.GetKey() && recCheck1.GetKey() != recCheck2.GetKey() {
 					offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, recCheck2, bf, merkle, writers, ssTable)
+					finishRecord = recCheck2
 				}
 				var chrecord *record.Record
 				chrecord, offsetData, offsetIndex, counter = finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data2)
@@ -178,10 +182,13 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 		}
 		// Ako je drugi fajl doso do kraja upisi slog i idi do kraja u prvo
 		if errorCheck {
-			fmt.Println(" ovdeee 2")
+			// fmt.Println(" ovdeee 2")
+			// fmt.Println(rec1.String())
+
 			offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec1, bf, merkle, writers, ssTable)
+			finishRecord = rec1
 			var chrecord *record.Record
-			chrecord, offsetData, offsetIndex, counter = finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data2)
+			chrecord, offsetData, offsetIndex, counter = finishAdd(counter, offsetData, offsetIndex, bf, merkle, writers, ssTable, data1)
 			if chrecord != nil {
 				finishRecord = chrecord
 			}
@@ -193,16 +200,18 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 			checkIteration = false
 		}
 		for {
-			fmt.Println("###########################")
-			fmt.Println("Offset index: ", offsetIndex)
-			fmt.Println("###########################")
-			rec2 = rec1
+			// fmt.Println("###########################")
+			// fmt.Println("Offset index: ", offsetIndex)
+			// fmt.Println("###########################")
+			rec2 = &record.Record{}
 			if equalsCheck {
 				rec2tmp1, err2 := record.ReadRecord(data2)
 				if err2 == io.EOF {
-					fmt.Println("rekord 1: ", rec1.String())
-					fmt.Println("rekord 2: ", rec2.String())
+					// fmt.Println("Kraj 2. jednaki su: ")
+					// fmt.Println("rekord 1: ", rec1.String())
+					// fmt.Println("rekord 2: ", rec2.String())
 					offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec1, bf, merkle, writers, ssTable)
+					finishRecord = rec1
 					recCheck2 = nil
 					errorCheck = true
 					break
@@ -216,9 +225,11 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 				} else {
 					rec2tmp, err2 := record.ReadRecord(data2)
 					if err2 == io.EOF {
-						fmt.Println("rekord 1: ", rec1.String())
-						fmt.Println("rekord 2: ", rec2.String())
+						// fmt.Println("Kraj 2. nisu jednaki: ")
+						// fmt.Println("rekord 1: ", rec1.String())
+						// fmt.Println("rekord 2: ", rec2.String())
 						offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec1, bf, merkle, writers, ssTable)
+						finishRecord = rec1
 						errorCheck = true
 						recCheck2 = nil
 						break
@@ -232,8 +243,9 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 				finishRecord = rec1
 				recCheck1 = rec1
 				recCheck2 = rec2
-				fmt.Println("rekord 1: ", rec1.String())
-				fmt.Println("rekord 2: ", rec2.String())
+				// fmt.Println("Drugi veci: ")
+				// fmt.Println("rekord 1: ", rec1.String())
+				// fmt.Println("rekord 2: ", rec2.String())
 				if !firstWriteRecord {
 					firstRecord = rec1
 					firstWriteRecord = true
@@ -245,8 +257,9 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 				offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec2, bf, merkle, writers, ssTable)
 				finishRecord = rec2
 				recCheck1 = rec1
-				fmt.Println("rekord 1: ", rec1.String())
-				fmt.Println("rekord 2: ", rec2.String())
+				// fmt.Println("Prvi veci: ")
+				// fmt.Println("rekord 1: ", rec1.String())
+				// fmt.Println("rekord 2: ", rec2.String())
 				if !firstWriteRecord {
 					firstRecord = rec2
 					firstWriteRecord = true
@@ -255,9 +268,9 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 				continue
 
 			} else {
-				fmt.Println("Isti su: ")
-				fmt.Println("rekord 1: ", rec1.String())
-				fmt.Println("rekord 2: ", rec2.String())
+				// fmt.Println("Isti su: ")
+				// fmt.Println("rekord 1: ", rec1.String())
+				// fmt.Println("rekord 2: ", rec2.String())
 				if rec1.GetTimeStamp() > rec2.GetTimeStamp() {
 					offsetData, offsetIndex, counter = addRecord(counter, offsetData, offsetIndex, rec1, bf, merkle, writers, ssTable)
 					finishRecord = rec1
@@ -280,8 +293,9 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 					firstWriteRecord = true
 				}
 				equalsCheck = true
-				fmt.Println("recChec2: ", recCheck2)
-				fmt.Println("recChec1: ", recCheck1)
+				// fmt.Println("Isti su 2: ")
+				// fmt.Println("recChec2: ", recCheck2)
+				// fmt.Println("recChec1: ", recCheck1)
 				break
 
 			}
@@ -289,22 +303,22 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	}
 
 	if structures == "Multiple" {
-		fmt.Println("First and Last: ")
-		fmt.Println("First -> ", firstRecord)
+		// fmt.Println("First and Last: ")
+		// fmt.Println("First -> ", firstRecord)
 		fmt.Println("Last -> ", finishRecord)
-		fmt.Println("Counter -> ", counter)
-		fmt.Println("Offset data: ", offsetData)
-		fmt.Println("Offset index: ", offsetIndex)
+		// fmt.Println("Counter -> ", counter)
+		// fmt.Println("Offset data: ", offsetData)
+		// fmt.Println("Offset index: ", offsetIndex)
 		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
 		ssTable.EncodeHelpers(bf, merkle)
 		ssTable.CloseFiles(files)
 	} else {
-		fmt.Println("First and Last: ")
-		fmt.Println("First -> ", firstRecord)
-		fmt.Println("Last -> ", finishRecord)
-		fmt.Println("Counter -> ", counter)
-		fmt.Println("Offset data: ", offsetData)
-		fmt.Println("Offset index: ", offsetIndex)
+		// fmt.Println("First and Last: ")
+		// fmt.Println("First -> ", firstRecord)
+		// fmt.Println("Last -> ", finishRecord)
+		// fmt.Println("Counter -> ", counter)
+		// fmt.Println("Offset data: ", offsetData)
+		// fmt.Println("Offset index: ", offsetIndex)
 		ssTable.CopyExistingToSummary(firstRecord, finishRecord, files, writers)
 		ssTable.EncodeHelpersOneFile(bf, merkle)
 

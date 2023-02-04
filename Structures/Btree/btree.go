@@ -354,7 +354,7 @@ func (bTree *BTree) AddElement(record *record.Record) (*Node, bool) {
 	}
 	//record already in tree
 	for i := 0; i < position.n; i++ {
-		fmt.Println(position.Keys[i])
+		// fmt.Println(position.Keys[i])
 		if position.Keys[i].GetKey() == record.GetKey() {
 			return position, true
 		}

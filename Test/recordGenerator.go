@@ -27,6 +27,9 @@ func RandomValue(length int) *[]byte {
 		fmt.Println("error:", err)
 		return nil
 	}
+	if len(bytes) == 0 {
+		bytes = []byte("Trajce legenda")
+	}
 	return &bytes
 }
 
