@@ -232,6 +232,12 @@ func (table *SStable) EncodeHelpers(bf *bloomfilter.BloomFilter, merkle *merkle.
 	table.FormTOC()
 }
 
+func (table *SStable) EncodeHelpersWithoutTOC(bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree) {
+	bf.Encode(table.BloomFilterPath)
+	merkle.GenerateMerkleTree()
+	merkle.Encode()
+}
+
 func NewSStableFromTOC(tocFilePath string) *SStable {
 	file, err := os.Open(tocFilePath)
 	if err != nil {
@@ -289,7 +295,7 @@ func (table *SStable) FormSStableTest(records *[]*record.Record) {
 func (table *SStable) FormTOC() {
 	file, err := os.Create(table.TOCFilePath)
 	if err != nil {
-		fmt.Println("Error")
+		fmt.Println("Error", err)
 		return
 	}
 	defer file.Close()
@@ -299,6 +305,8 @@ func (table *SStable) FormTOC() {
 		return
 	}
 }
+
+// func (table *SStable)
 
 func (table *SStable) Search(key string) *record.Record {
 
@@ -624,7 +632,7 @@ func (table *SStable) CopyExistingToSummary(first *record.Record, last *record.R
 	// copying existing.bin to real summary
 	_, err := io.Copy(files[2], files[3])
 	if err != nil {
-		fmt.Println("Error")
+		fmt.Println("Error existing to summary", err)
 		return
 	}
 	files[3].Close()

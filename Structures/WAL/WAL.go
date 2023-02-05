@@ -239,7 +239,7 @@ func (wal *WAL) RenameSegments() {
 
 	// Iterate through files in dir
 	for _, file := range files {
-		fmt.Println(file.Name())
+		// fmt.Println(file.Name())
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Renaming two segments to be the new two oldest
@@ -271,8 +271,8 @@ func (wal *WAL) RenameSegments() {
 func (wal *WAL) ReadRecords() bool {
 
 	file, err := os.Open(wal.CurrentLog)
-	fmt.Println(wal.CurrentLog)
-	fmt.Println("PODACI IZ FAJLA")
+	// fmt.Println(wal.CurrentLog)
+	// fmt.Println("PODACI IZ FAJLA")
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +285,7 @@ func (wal *WAL) ReadRecords() bool {
 		}
 		// CRC check
 		if rec.CheckCRC() {
-			fmt.Println(rec.String())
+			// fmt.Println(rec.String())
 		}
 	}
 
