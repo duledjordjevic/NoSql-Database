@@ -50,8 +50,6 @@ func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) []string {
 		file.Seek(int64(bloomSize), 1)
 	}
 	summaryHeader, _ := sstable.ReadSumarryHeader(file)
-	fmt.Println("MIN KEY -> ", summaryHeader.GetKeyMin())
-	fmt.Println("MAX KEY -> ", summaryHeader.GetKeyMax())
 
 	return []string{summaryHeader.GetKeyMin(), summaryHeader.GetKeyMax()}
 }

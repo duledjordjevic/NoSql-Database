@@ -644,6 +644,12 @@ func (table *SStable) EncodeHelpersOneFile(bf *bloomfilter.BloomFilter, merkle *
 	merkle.Encode()
 	table.FormTOC()
 }
+
+func (table *SStable) EncodeHelpersOneFileWithoutTOC(bf *bloomfilter.BloomFilter, merkle *merkle.MerkleTree) {
+	bf.Encode(EXISTING_BLOOM)
+	merkle.GenerateMerkleTree()
+	merkle.Encode()
+}
 func (table *SStable) CopyExistingToSummary(first *record.Record, last *record.Record, files []*os.File, writers []*bufio.Writer) {
 	files[3].Seek(0, 0)
 	// creating header for real summary
@@ -780,6 +786,9 @@ func (table *SStable) SearchOneFile(key string) *record.Record {
 		fmt.Println("Error open sstable", err)
 		return nil
 	}
+
+	file.Seek(0, 0)
+
 	defer file.Close()
 	bloomSize, sumSize, indexSize := table.ReadSStableHeader(file)
 
