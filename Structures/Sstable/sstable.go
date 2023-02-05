@@ -513,6 +513,27 @@ func (table *SStable) SearchPrefixMultiple(key string, numRecords uint64) []reco
 	}
 }
 
+func (table *SStable) GetLastElemMultiple() *record.Record {
+	file, err := os.Open(table.SummaryPath)
+	if err != nil {
+		fmt.Println("Error", err)
+		return nil
+	}
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	_ = record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+	file.Close()
+	record := table.Search(keyMax)
+	return record
+}
+
 func (table *SStable) CreateExistingFiles() []*os.File {
 	files := make([]*os.File, 0)
 	file, err := os.Create(EXISTING_DATA)
@@ -913,4 +934,29 @@ func (table *SStable) SearchPrefixSingle(key string, numRecords uint64) []record
 		fmt.Println("Neuspesna pretraga")
 		return nil
 	}
+}
+func (table *SStable) GetLastElemSingle() *record.Record {
+	file, err := os.Open(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error open sstable", err)
+		return nil
+	}
+	defer file.Close()
+	bloomSize, _, _ := table.ReadSStableHeader(file)
+
+	file.Seek(int64(HEADER+bloomSize), 0)
+
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	_ = record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+	file.Close()
+	record := table.SearchOneFile(keyMax)
+	return record
 }
