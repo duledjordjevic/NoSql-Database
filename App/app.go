@@ -87,6 +87,24 @@ func CreateApp() *App {
 	return &app
 }
 
+func (app *App) LastElement() *record.Record {
+	filePath := "./Data/Data" + app.Config.DataFileStructure + "/" + app.Config.Compaction + "/"
+	folder, err := ioutil.ReadDir(filePath + "Toc")
+	if err != nil {
+		fmt.Println("Greska kod citanja direktorijuma: ", err)
+		log.Fatal(err)
+	}
+	files := readpath.GetFiles(folder, 0, filePath)
+	files = readpath.SortFiles(files)
+	ssTable := sstable.NewSStableFromTOC(files[len(files)-1])
+	if app.Config.DataFileStructure == "Single" {
+		record := ssTable.GetLastElemSingle()
+		return record
+	}
+	record := ssTable.GetLastElemMultiple()
+	return record
+}
+
 func (app *App) End() {
 	filePath := "./Data/Data" + app.Config.DataFileStructure + "/" + app.Config.Compaction + "/"
 	app.WritePath.ExitFlush()

@@ -58,7 +58,7 @@ func (rp *ReadPath) Read(key string) []byte {
 	}
 
 	for i := 0; i < rp.ConfigReader.LSMLevelMax; i++ {
-		files := getFiles(folder, i, filepath)
+		files := GetFiles(folder, i, filepath)
 		files = SortFiles(files)
 		if rp.ConfigReader.Compaction == "SizeTiered" || i == 0 {
 			for j := len(files) - 1; j >= 0; j-- {
@@ -96,7 +96,7 @@ func (rp *ReadPath) Read(key string) []byte {
 	return nil
 }
 
-func getFiles(folder []fs.FileInfo, level int, filepath string) []string {
+func GetFiles(folder []fs.FileInfo, level int, filepath string) []string {
 	stringlist := make([]string, 0)
 	for _, file := range folder {
 		if writepath.GetLevel(file.Name()) == level {
