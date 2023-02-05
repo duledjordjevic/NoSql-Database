@@ -18,22 +18,24 @@ import (
 )
 
 const (
-	DIRECTORY        = "./Data/DataMultiple/Leveled/Data"
-	CAPACITY         = 10
+	CAPACITY         = 2
 	TEMPORARY_NAME   = "_TEMP_"
-	SSTABLE_CAPACITY = 2024
+	SSTABLE_CAPACITY = 200
 	PREFIX           = "./Data/Data"
 	SUFIX            = "/Data"
 	PERCENT          = 0.7
 )
 
 type Leveled struct {
-	lsm                   *LSM
-	directory             string
-	levels                map[int][]string
-	config                *configreader.ConfigReader
-	records               map[*os.File]*record.Record
-	fromTo                map[*os.File][]string
+	lsm       *LSM
+	directory string
+	levels    map[int][]string
+	config    *configreader.ConfigReader
+	records   map[*os.File]*record.Record
+	fromTo    map[*os.File][]string
+	first     *os.File
+	second    *os.File
+
 	BROJACRECORDA         int
 	BROJACPRENETIHFAJLOVA int
 }
@@ -572,7 +574,7 @@ func (lvl *Leveled) RenameFile(index int, level int, filename string) *sstable.S
 
 	}
 
-	return sstable.NewSStable(newName, newNames[0], newNames[1], newNames[2], newNames[3], newNames[4], "Linija 233 leveled")
+	return sstable.NewSStable(newName, newNames[0], newNames[1], newNames[2], newNames[3], newNames[4], newName)
 }
 
 func (lvl *Leveled) RenameLevel(SSTables []*sstable.SStable) {
@@ -622,6 +624,13 @@ func (lvl *Leveled) RenameLevel(SSTables []*sstable.SStable) {
 		SSTable.MetaDataPath = strings.ReplaceAll(filename, TEMPORARY_NAME, "_")
 
 		filename = SSTable.TOCFilePath
+
+		err = os.Remove(filename)
+		if err != nil {
+			// Nema pa nema
+			fmt.Println("Greska kod brisanja starog TOC-a:\n", err)
+		}
+
 		SSTable.TOCFilePath = strings.ReplaceAll(filename, TEMPORARY_NAME, "_")
 
 		// fmt.Println("Iznad form toc-a -> ", i)

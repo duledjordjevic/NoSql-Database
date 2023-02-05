@@ -11,34 +11,42 @@ import (
 )
 
 func (lvl *Leveled) calculateCapacity(level int) int {
-	return int(math.Ceil(float64(len(lvl.levels[level])) - PERCENT*math.Pow(CAPACITY, float64(level))))
+	duzinaNivoa := lvl.levels[level]
+	fmt.Println("Prvi deo jednacine -> ", math.Ceil(float64(len(duzinaNivoa))))
+	fmt.Println("Drugi deo jednacine -> ", PERCENT*math.Pow(CAPACITY, float64(level)))
+	fmt.Println("Rezultat -> ", math.Ceil(float64(len(duzinaNivoa))-PERCENT*math.Pow(CAPACITY, float64(level))))
+	fmt.Println("Nakon konverzije -> ", int(math.Ceil(float64(len(duzinaNivoa))-PERCENT*math.Pow(CAPACITY, float64(level)))))
+	return int(math.Ceil(float64(len(duzinaNivoa)) - PERCENT*math.Pow(CAPACITY, float64(level))))
 }
 
 func (lvl *Leveled) BetweenLevels(from int, to int) {
 
+	lvl.records = make(map[*os.File]*record.Record)
+
+	JEBENAFORMULA := lvl.calculateCapacity(from)
+	fmt.Println(JEBENAFORMULA)
+
 	firstLevel := readpath.SortFiles(lvl.levels[from])[:lvl.calculateCapacity(from)]
 	secondLevel := readpath.SortFiles(lvl.levels[to])
 
-	// TODO -> if second level is empty -> rename first level and break the loop
+	// TODO -> if second level is empty -> rename lvl.first level and break the loop
 
 	iteratorFirst := 0
 	iteratorSecond := 0
 
-	// oppening the first file from each level
-	first := lvl.lsm.OpenData(firstLevel[0])
+	// oppening the lvl.first file from each level
+	lvl.first = lvl.lsm.OpenData(firstLevel[0])
 
 	fmt.Println("----- Between Levels -----")
 	fmt.Println("Proceenat -> ", lvl.calculateCapacity(from))
 
-	fmt.Println("FIRST FILE -> ", first.Name())
-
-	var second *os.File
+	fmt.Println("FIRST FILE -> ", lvl.first.Name())
 
 	if secondLevel != nil {
-		second = lvl.lsm.OpenData(secondLevel[0])
-		fmt.Println("SECOND FILE -> ", second.Name())
+		lvl.second = lvl.lsm.OpenData(secondLevel[0])
+		fmt.Println("SECOND FILE -> ", lvl.second.Name())
 	} else {
-		second = nil
+		lvl.second = nil
 	}
 
 	// every newly generated sstable will be added to this list
@@ -49,19 +57,19 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 	var counterSecond int
 
-	if second != nil {
+	if lvl.second != nil {
 		counterSecond = len(secondLevel)
 	} else {
 		counterSecond = 0
 	}
 
 	// SSTables for reading header
-	SSTableFirst := lvl.NewSSTableFromFileName(first)
+	SSTableFirst := lvl.NewSSTableFromFileName(lvl.first)
 
 	var SSTableSecond *sstable.SStable
 
-	if second != nil {
-		SSTableSecond = lvl.NewSSTableFromFileName(second)
+	if lvl.second != nil {
+		SSTableSecond = lvl.NewSSTableFromFileName(lvl.second)
 	} else {
 		SSTableSecond = nil
 	}
@@ -80,31 +88,31 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 	fmt.Println("SUMMARY -> ", SSTableFirst.SummaryPath)
 
-	lvl.fromTo[first] = lvl.lsm.ReadHeader(SSTableFirst)
-	if second != nil {
-		lvl.fromTo[second] = lvl.lsm.ReadHeader(SSTableSecond)
+	lvl.fromTo[lvl.first] = lvl.lsm.ReadHeader(SSTableFirst)
+	if lvl.second != nil {
+		lvl.fromTo[lvl.second] = lvl.lsm.ReadHeader(SSTableSecond)
 	}
 
 	beginning := true
 
 	// data file values
-	var recordFirst *record.Record
-	var recordSecond *record.Record
+	// var recordFirst *record.Record
+	// var recordSecond *record.Record
 
 	// header values
 	var firstHeaderRecord *record.Record
 	var lastHeaderRecord *record.Record
 
 	for {
-		// level first got empied -> rename the rest of level two
+		// level lvl.first got empied -> rename the rest of level two
 		if counterFirst == 0 && counterSecond != 0 {
 			// terminal condition 1
 
-			// empty the remaining first file
-			SSTable, tempSSTables = lvl.EmptyFile(second, SSTable, currentCapacity, firstHeaderRecord, lastHeaderRecord, files, writers,
-				bf, merkle, &fileCounter, counter, offsetData, offsetIndex, &tempSSTables, to, false, recordSecond)
+			// empty the remaining lvl.first file
+			SSTable, tempSSTables = lvl.EmptyFile(lvl.second, SSTable, currentCapacity, firstHeaderRecord, lastHeaderRecord, files, writers,
+				bf, merkle, &fileCounter, counter, offsetData, offsetIndex, &tempSSTables, to, false, lvl.records[lvl.second])
 
-			fmt.Println("OVAJ KOJI SE PREPISUJE -> ", second.Name())
+			fmt.Println("OVAJ KOJI SE PREPISUJE -> ", lvl.second.Name())
 
 			// renaming reamining files to temp files
 
@@ -125,24 +133,26 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 			lvl.GenerateLevels()
 			// calls between levels
-			if len(tempSSTables) > CAPACITY {
-				// lvl.BetweenLevels(to, to+1)
-				fmt.Println("-- NAREDNA KOMPAKCIJA --")
+			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
+
+				if lvl.lsm.Config.LSMLevelMax < to+1 {
+					lvl.BetweenLevels(to, to+1)
+				}
 
 			}
 			return
 
 		}
-		// level second got emptied first -> rename the rest of level one
+		// level second got emptied lvl.first -> rename the rest of level one
 		if counterFirst != 0 && counterSecond == 0 {
 			// terminal condition 2
 
-			// empty the remaining first file
+			// empty the remaining lvl.first file
 			// firstHeaderRecord, lastHeaderRecord, _, SSTable
-			SSTable, tempSSTables = lvl.EmptyFile(first, SSTable, currentCapacity, firstHeaderRecord, lastHeaderRecord, files, writers,
-				bf, merkle, &fileCounter, counter, offsetData, offsetIndex, &tempSSTables, to, false, recordSecond)
+			SSTable, tempSSTables = lvl.EmptyFile(lvl.first, SSTable, currentCapacity, firstHeaderRecord, lastHeaderRecord, files, writers,
+				bf, merkle, &fileCounter, counter, offsetData, offsetIndex, &tempSSTables, to, false, lvl.records[lvl.first])
 
-			fmt.Println("OVAJ KOJI SE PREPISUJE -> ", first.Name())
+			fmt.Println("OVAJ KOJI SE PREPISUJE -> ", lvl.first.Name())
 
 			// renaming reamining files to temp files
 
@@ -173,9 +183,10 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 			lvl.GenerateLevels()
 			// calls between levels
-			if len(tempSSTables) > CAPACITY {
-				// lvl.BetweenLevels(to, to+1)
-				fmt.Println("-- NAREDNA KOMPAKCIJA --")
+			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
+				if lvl.lsm.Config.LSMLevelMax < to+1 {
+					lvl.BetweenLevels(to, to+1)
+				}
 
 			}
 			return
@@ -183,7 +194,7 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 		}
 
 		if beginning {
-			lvl.MoveBeginning(&beginning, &fileCounter, to, first, second, &tempSSTables,
+			lvl.MoveBeginning(&beginning, &fileCounter, to, &tempSSTables,
 				&counterFirst, &counterSecond, &iteratorFirst, &iteratorSecond, &firstLevel, &secondLevel, SSTableFirst, SSTableSecond)
 			if beginning {
 				continue
@@ -191,7 +202,9 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 		}
 
 		// sequential processing of both files
-		minimumFile, minimumRecord := lvl.GetMinimumRecord(recordFirst, recordSecond, first, second, &counterFirst, &counterSecond, &iteratorFirst, &iteratorSecond, &firstLevel, &secondLevel)
+		minimumFile, minimumRecord := lvl.GetMinimumRecord(&counterFirst, &counterSecond, &iteratorFirst, &iteratorSecond, &firstLevel, &secondLevel)
+
+		fmt.Println("Minumum File posle GetMinimumRecord-a -> ", minimumFile.Name())
 
 		currentCapacity += int(minimumRecord.GetSize())
 
@@ -234,7 +247,7 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 		// remembers the last record -> will be necessary in header later
 		lastHeaderRecord = minimumRecord
 
-		lvl.NextRecordBetweenLevels(minimumFile, first, recordFirst, recordSecond, second, &counterFirst, &counterSecond, &iteratorFirst, &iteratorSecond, &firstLevel, &secondLevel)
+		lvl.NextRecordBetweenLevels(minimumFile, &counterFirst, &counterSecond, &iteratorFirst, &iteratorSecond, &firstLevel, &secondLevel)
 
 		// fmt.Println("AFTER NEXT RECORD -> ", minimumRecord)
 
@@ -242,55 +255,63 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 }
 
-func (lvl *Leveled) GetMinimumRecord(recordFirst, recordSecond *record.Record, first, second *os.File, counterFirst, counterSecond, iteratorFirst, iteratorSecond *int, firstLevel, secondLevel *[]string) (*os.File, *record.Record) {
+func (lvl *Leveled) GetMinimumRecord(counterFirst, counterSecond, iteratorFirst, iteratorSecond *int, firstLevel, secondLevel *[]string) (*os.File, *record.Record) {
 	// initialiazing values for first and second record
 
-	if recordFirst == nil {
-		first, recordFirst, second, recordSecond = lvl.NextRecordBetweenLevels(first, first, recordFirst, recordSecond, second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
+	if lvl.records[lvl.first] == nil {
+		lvl.NextRecordBetweenLevels(lvl.first, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
+
 	}
-	if recordSecond == nil {
-		first, recordFirst, second, recordSecond = lvl.NextRecordBetweenLevels(second, first, recordFirst, recordSecond, second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
+	if lvl.records[lvl.second] == nil {
+		lvl.NextRecordBetweenLevels(lvl.second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
 	}
+
+	// ---------------------------------------------------------------
 
 	// comparing first and second records
-	if recordFirst.GetKey() > recordSecond.GetKey() {
-		return first, recordFirst
+	if lvl.records[lvl.first].GetKey() < lvl.records[lvl.second].GetKey() {
+		fmt.Println("Bira first zbog manjeg kljuca -> ", lvl.first.Name())
+		return lvl.first, lvl.records[lvl.first]
 
-	} else if recordFirst.GetKey() < recordSecond.GetKey() {
-		return second, recordSecond
+	} else if lvl.records[lvl.first].GetKey() > lvl.records[lvl.second].GetKey() {
+		fmt.Println("Bira second zbog manjeg kljuca -> ", lvl.second.Name())
+		return lvl.second, lvl.records[lvl.second]
 
 	} else {
-		if recordFirst.GetTimeStamp() > recordSecond.GetTimeStamp() {
+		if lvl.records[lvl.first].GetTimeStamp() > lvl.records[lvl.second].GetTimeStamp() {
 
 			// TODO MOVE TO THJE NEXT RECORD IN LOWER FILE
-			first, recordFirst, second, recordSecond = lvl.NextRecordBetweenLevels(second, first, recordFirst, recordSecond, second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
-			return first, recordFirst
+			lvl.NextRecordBetweenLevels(lvl.second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
+			fmt.Println("Bira first zbog timeStamp-a -> ", lvl.first.Name())
+			return lvl.first, lvl.records[lvl.first]
 
-		} else if recordFirst.GetTimeStamp() < recordSecond.GetTimeStamp() {
+		} else if lvl.records[lvl.first].GetTimeStamp() < lvl.records[lvl.second].GetTimeStamp() {
 
 			// TODO MOVE TO THJE NEXT RECORD IN LOWER FILE
-			first, recordFirst, second, recordSecond = lvl.NextRecordBetweenLevels(first, first, recordFirst, recordSecond, second, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
-			return second, recordSecond
+			lvl.NextRecordBetweenLevels(lvl.first, counterFirst, counterSecond, iteratorFirst, iteratorSecond, firstLevel, secondLevel)
+			fmt.Println("Bira second zbog timeStamp-a -> ", lvl.second.Name())
+			return lvl.second, lvl.records[lvl.second]
 		}
 	}
 	return nil, nil
 }
 
-func (lvl *Leveled) NextRecordBetweenLevels(minimumFile *os.File, first *os.File, recordFirst *record.Record, recordSecond *record.Record,
-	second *os.File, counterFirst *int, counterSecond *int, iteratorFirst *int, iteratorSecond *int, firstLevel *[]string, secondLevel *[]string) (*os.File, *record.Record, *os.File, *record.Record) {
+func (lvl *Leveled) NextRecordBetweenLevels(minimumFile *os.File, counterFirst *int, counterSecond *int, iteratorFirst *int, iteratorSecond *int, firstLevel *[]string, secondLevel *[]string) {
 
+	fmt.Println("Ulaz u next record -> ", lvl.records[lvl.first], lvl.records[lvl.second])
 	nextRecord, _ := record.ReadRecord(minimumFile)
 	if nextRecord == nil {
 		// deleting the file and removing it from the map
-		if minimumFile == first {
+		if minimumFile == lvl.first {
 			*counterFirst--
 			*iteratorFirst++
 
 			if *iteratorFirst > len(*firstLevel)-1 {
-				first = nil
+				lvl.first = nil
 			} else {
-				first = lvl.lsm.OpenData((*firstLevel)[*iteratorFirst])
-				recordFirst, _ = record.ReadRecord(first)
+				lvl.first = lvl.lsm.OpenData((*firstLevel)[*iteratorFirst])
+				fmt.Println("Novi fajl koji se otvara first -> ", lvl.first.Name())
+				lvl.records[lvl.first], _ = record.ReadRecord(lvl.first)
 				// read header -> update map
 			}
 		} else {
@@ -298,79 +319,82 @@ func (lvl *Leveled) NextRecordBetweenLevels(minimumFile *os.File, first *os.File
 			*iteratorSecond++
 
 			if *iteratorSecond > len(*secondLevel)-1 {
-				second = nil
+				lvl.second = nil
 			} else {
-				second = lvl.lsm.OpenData((*secondLevel)[*iteratorSecond])
-				recordSecond, _ = record.ReadRecord(second)
+				lvl.second = lvl.lsm.OpenData((*secondLevel)[*iteratorSecond])
+				fmt.Println("Novi fajl koji se otvara second -> ", lvl.second.Name())
+				lvl.records[lvl.second], _ = record.ReadRecord(lvl.second)
 				// read header -> update map
 			}
 		}
 
 		minimumFile.Close()
 		delete(lvl.fromTo, minimumFile)
+		delete(lvl.records, minimumFile)
 
 		// remove all files (DATA, INDEX, SUMMARY, BF, TOC, MERKLE)
+		fmt.Println("Minimum file za brsianje -> ", minimumFile.Name())
 		lvl.RemoveFile(minimumFile)
 
 	} else {
-		if minimumFile == first {
-			recordFirst = nextRecord
+		if minimumFile == lvl.first {
+			lvl.records[lvl.first] = nextRecord
 		} else {
-			recordSecond = nextRecord
+			lvl.records[lvl.second] = nextRecord
 		}
 	}
+	fmt.Println("Izlaz iz next record-a -> ", lvl.records[lvl.first], lvl.records[lvl.second])
 
-	return first, recordFirst, second, recordSecond
+	// ---------------------------------------------------------
+	return
 }
 
-func (lvl *Leveled) MoveBeginning(beginning *bool, fileCounter *int, to int, first, second *os.File, tempSSTables *[]*sstable.SStable,
+func (lvl *Leveled) MoveBeginning(beginning *bool, fileCounter *int, to int, tempSSTables *[]*sstable.SStable,
 	counterFirst, counterSecond, iteratorFirst, iteratorSecond *int, firstLevel, secondLevel *[]string, SSTableFirst, SSTableSecond *sstable.SStable) {
 
-	if lvl.fromTo[first][0] < lvl.fromTo[second][0] && lvl.fromTo[first][1] < lvl.fromTo[second][0] {
+	if lvl.fromTo[lvl.first][0] < lvl.fromTo[lvl.second][0] && lvl.fromTo[lvl.first][1] < lvl.fromTo[lvl.second][0] {
 		// renaming file from first level
-		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, first.Name()))
-		delete(lvl.fromTo, first)
+		lvl.first.Close()
+		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, lvl.first.Name()))
+		delete(lvl.fromTo, lvl.first)
 		// open next file from first level
 		*counterFirst--
 		*fileCounter++
 		*iteratorFirst++
-
-		first.Close()
 
 		if *iteratorFirst > len(*firstLevel)-1 {
 			// no more files from level 1
 			return
 		} else {
 
-			first = lvl.lsm.OpenData((*firstLevel)[*iteratorFirst])
+			lvl.first = lvl.lsm.OpenData((*firstLevel)[*iteratorFirst])
 
-			SSTableFirst = lvl.NewSSTableFromFileName(first)
+			SSTableFirst = lvl.NewSSTableFromFileName(lvl.first)
 			// read header and update map
-			lvl.fromTo[first] = lvl.lsm.ReadHeader(SSTableFirst)
+			lvl.fromTo[lvl.first] = lvl.lsm.ReadHeader(SSTableFirst)
 
 		}
 
 		// continue
-	} else if lvl.fromTo[second][0] < lvl.fromTo[first][0] && lvl.fromTo[second][1] < lvl.fromTo[first][0] {
-		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, second.Name()))
-		delete(lvl.fromTo, second)
+	} else if lvl.fromTo[lvl.second][0] < lvl.fromTo[lvl.first][0] && lvl.fromTo[lvl.second][1] < lvl.fromTo[lvl.first][0] {
+		lvl.second.Close()
+		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, lvl.second.Name()))
+		delete(lvl.fromTo, lvl.second)
 		// open next file from second level
 		*counterSecond--
 		*fileCounter++
 		*iteratorSecond++
-
-		second.Close()
 
 		if *iteratorSecond > len(*secondLevel)-1 {
 			// no more files from level 2
 			return
 		} else {
 
-			second = lvl.lsm.OpenData((*secondLevel)[*iteratorSecond])
+			lvl.second = lvl.lsm.OpenData((*secondLevel)[*iteratorSecond])
 
-			SSTableSecond = lvl.NewSSTableFromFileName(second)
+			SSTableSecond = lvl.NewSSTableFromFileName(lvl.second)
 			// read header and update map
-			lvl.fromTo[second] = lvl.lsm.ReadHeader(SSTableSecond)
+			lvl.fromTo[lvl.second] = lvl.lsm.ReadHeader(SSTableSecond)
 
 		}
 	} else {
