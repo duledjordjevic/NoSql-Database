@@ -6,7 +6,6 @@ import (
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
-	wal "NAiSP/Structures/WAL"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,7 +20,7 @@ const (
 
 // Store all types
 type WritePath struct {
-	Wal         *wal.WAL
+	Wal         *WAL
 	MemTable    *memtable.MemTable
 	BloomFilter *bloomfilter.BloomFilter
 	Config      *configreader.ConfigReader
@@ -72,6 +71,38 @@ func (wp *WritePath) Write(record *record.Record) {
 	// 	wp.BloomFilter.Hash(record.GetKey())
 	// }
 	// wp.BloomFilter.Decode(DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + BLOOMFILTER)
+
+}
+
+// Reconstruction
+func (wp *WritePath) Reconstruction(record *record.Record) {
+
+	// If WAL has written record, then write in MemTable
+	writtenInMem := wp.MemTable.Add(record)
+	// If nill -> not flushed
+	if writtenInMem != nil {
+		// Generating new SSTable using next file suffix
+
+		if wp.Config.DataFileStructure == "Multiple" {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
+
+			SStable := sstable.NewSStableAutomatic(GenerateSufix(directory, 0), wp.Config)
+			SStable.FormSStableTest(writtenInMem)
+
+		} else {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction
+			SStable := &sstable.SStable{
+				SStableFilePath: directory + "/Data" + "/data" + GenerateSufix(directory+"/Data", 0) + ".bin",
+				TOCFilePath:     directory + "/Toc" + "/TOC" + GenerateSufix(directory+"/Data", 0) + ".txt",
+				MetaDataPath:    directory + "/Data" + "/Metadata" + GenerateSufix(directory+"/Data", 0) + ".txt"}
+
+			SStable.FormSStableOneFile(writtenInMem)
+
+		}
+
+	}
+
+	wp.BloomFilter.Hash(record.GetKey())
 
 }
 

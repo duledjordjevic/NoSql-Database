@@ -1,8 +1,7 @@
-package wal
+package writepath
 
 import (
 	configreader "NAiSP/Structures/ConfigReader"
-	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	"fmt"
 	"io/ioutil"
@@ -43,11 +42,11 @@ type WAL struct {
 	CurrentLog          string
 	MaxNumberOfSegments uint
 	Config              *configreader.ConfigReader
-	Memtable            *memtable.MemTable
+	WritePath           *WritePath
 	LastRecord          *record.Record
 }
 
-func NewWal(config *configreader.ConfigReader, memtable *memtable.MemTable, lastRecord *record.Record) *WAL {
+func NewWal(config *configreader.ConfigReader, wp *WritePath, lastRecord *record.Record) *WAL {
 
 	records := make([]*record.Record, 0, config.WalBufferCapacity)
 	firstlog := "../NAiSP/Data/Wal/wal_001.log"
@@ -58,7 +57,7 @@ func NewWal(config *configreader.ConfigReader, memtable *memtable.MemTable, last
 		CurrentLog:          firstlog,
 		MaxNumberOfSegments: 1,
 		Config:              config,
-		Memtable:            memtable,
+		WritePath:           wp,
 		LastRecord:          lastRecord,
 	}
 }
@@ -349,11 +348,11 @@ func (wal *WAL) Reconstruction() bool {
 					continue
 				}
 				if wal.LastRecord == nil {
-					wal.Memtable.Add(record)
+					wal.WritePath.Reconstruction(record)
 					continue
 				}
 				if record.GetTimeStamp() > wal.LastRecord.GetTimeStamp() {
-					wal.Memtable.Add(record)
+					wal.WritePath.Reconstruction(record)
 					continue
 				}
 
@@ -376,11 +375,11 @@ func (wal *WAL) Reconstruction() bool {
 					continue
 				}
 				if wal.LastRecord == nil {
-					wal.Memtable.Add(record)
+					wal.WritePath.Reconstruction(record)
 					continue
 				}
 				if record.GetTimeStamp() > wal.LastRecord.GetTimeStamp() {
-					wal.Memtable.Add(record)
+					wal.WritePath.Reconstruction(record)
 					continue
 				}
 
