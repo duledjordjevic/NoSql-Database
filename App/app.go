@@ -70,14 +70,17 @@ func CreateApp() *App {
 	app.Bloomfilter = BF
 
 	app.Memtable = memtable.CreateMemtable(float64(config.WalSize), config.MemtableTrashold, config.MemtableStructure)
-	app.Wal = wal.NewWal()
 	app.Lru = lru.NewLRUCache(uint(config.CacheCapacity))
+
+	wal := writepath.WAL{}
 	app.WritePath = &writepath.WritePath{
-		Wal:         app.Wal,
+		Wal:         &wal,
 		MemTable:    app.Memtable,
 		BloomFilter: app.Bloomfilter,
 		Config:      &config,
 	}
+	app.Wal = writepath.NewWal(app.Config, app.WritePath, app.LastElement())
+	app.WritePath.Wal = app.Wal
 	app.ReadPath = &readpath.ReadPath{
 		MemTable:     app.Memtable,
 		Lru:          app.Lru,
