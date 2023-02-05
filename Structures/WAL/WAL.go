@@ -254,7 +254,7 @@ func (wal *WAL) RenameSegments() {
 
 	// Iterate through files in dir
 	for _, file := range files {
-		fmt.Println(file.Name())
+		// fmt.Println(file.Name())
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Renaming two segments to be the new two oldest
@@ -319,6 +319,9 @@ func (wal *WAL) Reconstruction() bool {
 	// Path
 	dir := "../NAiSP/Data/Wal"
 
+	file, err := os.Open(wal.CurrentLog)
+	// fmt.Println(wal.CurrentLog)
+	// fmt.Println("PODACI IZ FAJLA")
 	// Reading directory
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
