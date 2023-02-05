@@ -83,7 +83,7 @@ func GenerateSufix(directory string, level int) string {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Duzina -> ", len(files))
+	// fmt.Println("Duzina -> ", len(files))
 
 	if len(files) == 0 {
 		return "_l0_0"

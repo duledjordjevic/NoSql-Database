@@ -104,10 +104,13 @@ func PrintIndexTable(indexTablePath string) {
 	for {
 		indexForPrint, err := ReadIndexRecord(file)
 		if err != nil {
+			fmt.Println(i)
 			return
 		}
 		str := indexForPrint.String()
 		fmt.Print(str)
+		// fmt.Println(i)
 		i += 1
 	}
+
 }

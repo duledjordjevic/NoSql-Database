@@ -34,7 +34,7 @@ func (lsm *LSM) OpenData(fileName string) *os.File {
 	return file
 }
 
-func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) (string, string) {
+func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) []string {
 	file, err := os.Open(SSTable.SummaryPath)
 	if err != nil {
 		fmt.Println("Error, ", err)
@@ -47,6 +47,8 @@ func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) (string, string) {
 		file.Seek(int64(bloomSize), 1)
 	}
 	summaryHeader, _ := sstable.ReadSumarryHeader(file)
+	fmt.Println("MIN KEY -> ", summaryHeader.GetKeyMin())
+	fmt.Println("MAX KEY -> ", summaryHeader.GetKeyMax())
 
-	return summaryHeader.GetKeyMin(), summaryHeader.GetKeyMax()
+	return []string{summaryHeader.GetKeyMin(), summaryHeader.GetKeyMax()}
 }

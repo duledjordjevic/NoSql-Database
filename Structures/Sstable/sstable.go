@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 const (
@@ -244,6 +245,9 @@ func NewSStableFromTOC(tocFilePath string) *SStable {
 		data = append(data, scanner.Text())
 	}
 
+	if data[0] != "" {
+		data = append(data, "")
+	}
 	return &SStable{
 		DataTablePath:   data[0],
 		IndexTablePath:  data[1],
@@ -384,6 +388,121 @@ func (table *SStable) searchRecord(key string, offset uint64) *record.Record {
 
 	}
 
+}
+
+func searchDataRange(keyRange1 string, keyRange2 string, file *os.File, numRecords uint64) []record.Record {
+	records := make([]record.Record, 0)
+	i := 1
+	for {
+		if i >= int(numRecords) {
+			return records
+		}
+		record, err := record.ReadRecord(file)
+		if err == io.EOF {
+			return records
+		}
+		if err != nil {
+			fmt.Println("Error with read data record:", err)
+			return nil
+		}
+		if keyRange1 <= record.GetKey() && record.GetKey() <= keyRange2 {
+			records = append(records, *record)
+			i++
+			continue
+		}
+		if record.GetKey() > keyRange2 {
+			return records
+		}
+
+	}
+}
+
+func (table *SStable) SearchRangeMultiple(keyRange1 string, keyRange2 string, numRecords uint64) []record.Record {
+
+	file, err := os.Open(table.SummaryPath)
+	if err != nil {
+		fmt.Println("Error", err)
+		return nil
+	}
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	keyMin := record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+	if keyRange1 > keyMax || keyRange2 < keyMin {
+		fmt.Println("Nepravilan opseg")
+		return nil
+	} else {
+
+		fileData, err := os.Open(table.DataTablePath)
+		if err != nil {
+			fmt.Println("Error with open data file:", err)
+			return nil
+		}
+		recordsRange := searchDataRange(keyRange1, keyRange2, fileData, numRecords)
+		return recordsRange
+	}
+}
+
+func searchDataPrefix(key string, file *os.File, numRec uint64) []record.Record {
+	records := make([]record.Record, 0)
+	i := 0
+	for {
+		if i >= int(numRec) {
+			return records
+		}
+		record, err := record.ReadRecord(file)
+		if err == io.EOF {
+			return records
+		}
+		if err != nil {
+			fmt.Println("Error with read data", err)
+			return nil
+		}
+		if strings.HasPrefix(record.GetKey(), key) {
+			records = append(records, *record)
+			i++
+			continue
+
+		}
+	}
+
+}
+
+func (table *SStable) SearchPrefixMultiple(key string, numRecords uint64) []record.Record {
+	file, err := os.Open(table.SummaryPath)
+	if err != nil {
+		fmt.Println("Error", err)
+		return nil
+	}
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	keyMin := record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+
+	if (keyMin <= key && key <= keyMax) || strings.HasPrefix(keyMin, key) || strings.HasPrefix(keyMax, key) {
+		fileData, err := os.Open(table.DataTablePath)
+		if err != nil {
+			fmt.Println("Error with open data file:", err)
+			return nil
+		}
+		records := searchDataPrefix(key, fileData, numRecords)
+		return records
+	} else {
+		fmt.Println("Neuspesna pretraga")
+		return nil
+	}
 }
 
 func (table *SStable) CreateExistingFiles() []*os.File {
@@ -707,4 +826,66 @@ func (table *SStable) searchRecordOneFile(file *os.File, key string, offset uint
 
 	}
 
+}
+
+func (table *SStable) SearchRangeSingle(keyRange1 string, keyRange2 string, numRecords uint64) []record.Record {
+
+	file, err := os.Open(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error", err)
+		return nil
+	}
+	bloomSize, sumSize, indexSize := table.ReadSStableHeader(file)
+	file.Seek(int64(bloomSize)+HEADER, 0)
+
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	keyMin := record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+
+	if keyRange1 > keyMax || keyRange2 < keyMin {
+		fmt.Println("Nepravilan opseg")
+		return nil
+	} else {
+		file.Seek(int64(HEADER+bloomSize+sumSize+indexSize), 0)
+		recordsRange := searchDataRange(keyRange1, keyRange2, file, numRecords)
+		return recordsRange
+	}
+}
+
+func (table *SStable) SearchPrefixSingle(key string, numRecords uint64) []record.Record {
+	file, err := os.Open(table.SStableFilePath)
+	if err != nil {
+		fmt.Println("Error", err)
+		return nil
+	}
+	bloomSize, sumSize, indexSize := table.ReadSStableHeader(file)
+	file.Seek(int64(bloomSize)+HEADER, 0)
+
+	bytes := make([]byte, KEY_MIN_SIZE+KEY_MAX_SIZE)
+
+	_, err = io.ReadAtLeast(file, bytes, KEY_MIN_SIZE+KEY_MAX_SIZE)
+	if err != nil {
+		return nil
+	}
+	keyMinSize := binary.BigEndian.Uint64(bytes[:KEY_MIN_SIZE])
+	keyMaxSize := binary.BigEndian.Uint64(bytes[KEY_MIN_SIZE : KEY_MAX_SIZE+KEY_MIN_SIZE])
+	keyMin := record.ReadKey(file, keyMinSize)
+	keyMax := record.ReadKey(file, keyMaxSize)
+
+	if (keyMin <= key && key <= keyMax) || strings.HasPrefix(keyMin, key) || strings.HasPrefix(keyMax, key) {
+
+		file.Seek(int64(HEADER+bloomSize+sumSize+indexSize), 0)
+		records := searchDataPrefix(key, file, numRecords)
+		return records
+	} else {
+		fmt.Println("Neuspesna pretraga")
+		return nil
+	}
 }
