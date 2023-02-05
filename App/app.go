@@ -9,7 +9,6 @@ import (
 	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
-	wal "NAiSP/Structures/WAL"
 	writepath "NAiSP/Structures/WritePath"
 	tester "NAiSP/Test"
 	"bufio"
@@ -42,7 +41,7 @@ type App struct {
 	Memtable    *memtable.MemTable
 	Bloomfilter *bloomfilter.BloomFilter
 	Lru         *lru.LRUCache
-	Wal         *wal.WAL
+	Wal         *writepath.WAL
 	WritePath   *writepath.WritePath
 	ReadPath    *readpath.ReadPath
 }
@@ -69,7 +68,7 @@ func CreateApp() *App {
 	}
 	app.Bloomfilter = BF
 
-	app.Memtable = memtable.CreateMemtable(float64(config.WalSize), config.MemtableTrashold, config.MemtableStructure)
+	app.Memtable = memtable.CreateMemtable(float64(config.MemtableSize), config.MemtableTrashold, config.MemtableStructure)
 	app.Lru = lru.NewLRUCache(uint(config.CacheCapacity))
 
 	wal := writepath.WAL{}
@@ -81,6 +80,7 @@ func CreateApp() *App {
 	}
 	app.Wal = writepath.NewWal(app.Config, app.WritePath, app.LastElement())
 	app.WritePath.Wal = app.Wal
+	app.Wal.Reconstruction()
 	app.ReadPath = &readpath.ReadPath{
 		MemTable:     app.Memtable,
 		Lru:          app.Lru,
@@ -97,8 +97,14 @@ func (app *App) LastElement() *record.Record {
 		fmt.Println("Greska kod citanja direktorijuma: ", err)
 		log.Fatal(err)
 	}
+	if len(folder) == 0 {
+		return record.NewRecordZeroTimeStamp("", []byte{0}, 0)
+	}
 	files := readpath.GetFiles(folder, 0, filePath)
 	files = readpath.SortFiles(files)
+	if len(files) == 0 {
+		return nil
+	}
 	ssTable := sstable.NewSStableFromTOC(files[len(files)-1])
 	if app.Config.DataFileStructure == "Single" {
 		record := ssTable.GetLastElemSingle()

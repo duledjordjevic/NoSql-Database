@@ -326,7 +326,7 @@ func (wal *WAL) Reconstruction() bool {
 
 	fileNames := make([]string, 0)
 	for _, file := range files {
-		fileNames = append(fileNames, file.Name())
+		fileNames = append(fileNames, dir+"/"+file.Name())
 	}
 
 	fileNames = SortFiles(fileNames)
@@ -368,6 +368,7 @@ func (wal *WAL) Reconstruction() bool {
 
 			for {
 				record, _ := record.ReadRecord(file)
+				fmt.Println(record)
 				if record == nil {
 					break
 				}
@@ -384,13 +385,14 @@ func (wal *WAL) Reconstruction() bool {
 				}
 
 			}
+			file.Close()
 		}
 	}
 
 	for _, file := range files {
 		// Remove old segments
 		err := os.Remove(dir + "/" + file.Name())
-		if err == nil {
+		if err != nil {
 			fmt.Println("Neuspesno brisanje wala")
 		}
 	}

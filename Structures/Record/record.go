@@ -64,6 +64,20 @@ func NewRecordKeyValue(key string, value []byte, tombstone byte) *Record {
 	return &Record{Data: data}
 }
 
+func NewRecordZeroTimeStamp(key string, value []byte, tombstone byte) *Record {
+	data := make([]byte, 0)
+
+	data = binary.BigEndian.AppendUint32(data, CRC32(append([]byte(key), value...)))
+	data = binary.BigEndian.AppendUint64(data, uint64(0))
+	data = append(data, tombstone)
+	data = binary.BigEndian.AppendUint64(data, uint64(len(key)))
+	data = binary.BigEndian.AppendUint64(data, uint64(len(value)))
+	data = append(data, []byte(key)...)
+	data = append(data, value...)
+
+	return &Record{Data: data}
+}
+
 // KONSTRUKTOR ZA RECORD KADA SE PROCITA IZ FAJLA
 func NewRecordByte(data []byte) *Record {
 	return &Record{Data: data}
