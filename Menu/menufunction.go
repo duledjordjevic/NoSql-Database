@@ -30,7 +30,7 @@ func Start(app *application.App) {
 
 			other(app)
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			app.End()
 		} else {
@@ -63,7 +63,7 @@ func search(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -105,7 +105,7 @@ func other(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -147,7 +147,7 @@ func bfMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -177,7 +177,7 @@ func cmsMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -219,7 +219,7 @@ func hllMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -256,7 +256,7 @@ func shMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()

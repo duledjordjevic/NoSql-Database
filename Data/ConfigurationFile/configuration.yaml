@@ -5,7 +5,7 @@ memtable_trashold: 0.8
 memtable_size: 10
 memtable_structure: btree
 cache_capacity: 5
-compaction: Leveled
+compaction: SizeTiered
 lsm_leveled_max: 8
 lsm_max_l0_number: 8 
 lsm_max_l1_number: 10
