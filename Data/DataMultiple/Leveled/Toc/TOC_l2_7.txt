@@ -1,6 +1,0 @@
-./Data/DataMultiple/Leveled/Data/data_l2_7.bin
-./Data/DataMultiple/Leveled/Data/index_l2_7.bin
-./Data/DataMultiple/Leveled/Data/summary_l2_7.bin
-./Data/DataMultiple/Leveled/Data/bloomfilter_l2_7.gob
-./Data/DataMultiple/Leveled/Data/Metadata_l2_7.txt
-Linija 233 leveled

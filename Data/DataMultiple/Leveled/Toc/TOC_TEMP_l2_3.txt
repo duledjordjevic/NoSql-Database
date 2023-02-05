@@ -1,5 +1,0 @@
-./Data/DataMultiple/Leveled/Data/data_l1_3.bin
-./Data/DataMultiple/Leveled/Data/index_l1_3.bin
-./Data/DataMultiple/Leveled/Data/summary_l1_3.bin
-./Data/DataMultiple/Leveled/Data/bloomfilter_l1_3.gob
-./Data/DataMultiple/Leveled/Data/Metadata_l1_3.txt
