@@ -61,7 +61,7 @@ func ReadFile(filename string) error {
 			break
 		}
 		capacity += int(record.GetSize())
-		fmt.Println(record.String())
+		// fmt.Println(record.String())
 	}
 
 	return nil
@@ -93,7 +93,7 @@ func ReadLevel(level int, directory string, config *configreader.ConfigReader) {
 				if rec == nil {
 					break
 				}
-				fmt.Println(rec.String())
+				// fmt.Println(rec.String())
 				counter++
 			}
 			fileCounter++
