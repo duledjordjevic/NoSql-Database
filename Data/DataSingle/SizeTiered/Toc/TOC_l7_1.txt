@@ -1,6 +1,0 @@
-
-
-
-
-./Data/DataSingle/SizeTiered/Data/Metadata_l7_1.txt
-./Data/DataSingle/SizeTiered/Data/data_l7_1.bin

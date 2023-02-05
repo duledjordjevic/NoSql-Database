@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Glavni meni
+// Global menu
 func Start(app *application.App) {
 	for {
 		PrintMenu()
@@ -20,7 +20,6 @@ func Start(app *application.App) {
 
 		} else if input == "3" {
 
-			// Vrste pretrage
 			search(app)
 
 		} else if input == "4" {
@@ -29,10 +28,9 @@ func Start(app *application.App) {
 
 		} else if input == "5" {
 
-			// Ostale funkcije
 			other(app)
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			app.End()
 		} else {
@@ -42,14 +40,14 @@ func Start(app *application.App) {
 	}
 }
 
-// Vrste pretrage
+// Search operation
 func search(app *application.App) {
 	for {
 		PrintSearchMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
 
-			// Obicna pretraga
+			//Normal search
 			app.Get()
 
 		} else if input == "2" {
@@ -65,7 +63,7 @@ func search(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -77,7 +75,7 @@ func search(app *application.App) {
 	}
 }
 
-// Ostale funkcije
+// Other operation
 func other(app *application.App) {
 	for {
 		PrintOtherMenu()
@@ -107,7 +105,7 @@ func other(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -119,6 +117,7 @@ func other(app *application.App) {
 	}
 }
 
+// BLOOMFILTER operation menu
 func bfMenu(app *application.App) {
 	for {
 		PrintBloomFilterMenu()
@@ -148,7 +147,7 @@ func bfMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -159,6 +158,8 @@ func bfMenu(app *application.App) {
 
 	}
 }
+
+// CMS operation menu
 func cmsMenu(app *application.App) {
 	for {
 		PrintCMSMenu()
@@ -176,7 +177,7 @@ func cmsMenu(app *application.App) {
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -187,24 +188,38 @@ func cmsMenu(app *application.App) {
 
 	}
 }
+
+// HLL operation menu
 func hllMenu(app *application.App) {
 	for {
 		PrintHLLMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
+
 			// add
+			app.AddHll()
+
 		} else if input == "2" {
+
 			// delet
+			app.DeleteHLL()
+
 		} else if input == "3" {
+
 			// add element
+			app.AddElementHLL()
+
 		} else if input == "4" {
+
 			// chech
+			app.CheckCardHLL()
+
 		} else if input == "5" {
 
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
@@ -215,22 +230,33 @@ func hllMenu(app *application.App) {
 
 	}
 }
+
+// SIMHASH operation menu
 func shMenu(app *application.App) {
 	for {
 		PrintSimHashMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-			// add
+
+			// Add
+			app.AddSH()
+
 		} else if input == "2" {
+
 			// delet
+			app.DeleteSH()
+
 		} else if input == "3" {
+
 			// check
+			app.CheckSH()
+
 		} else if input == "4" {
 
 			// Back
 			return
 
-		} else if input == "X" {
+		} else if input == "X" || input == "x" {
 
 			// EXIT
 			app.End()
