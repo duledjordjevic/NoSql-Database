@@ -16,5 +16,4 @@ import (
 func main() {
 	app := application.CreateApp()
 	menu.Start(app)
-	// fmt.Println(app.ReadValue("inexi :"))
 }

@@ -164,7 +164,7 @@ func (app *App) ReadValue(text string) string {
 
 	for {
 		fmt.Print(text)
-		n, err := fmt.Scan(&input)
+		n, err := fmt.Scanln(&input)
 		if err != nil {
 			fmt.Println("Lose ste uneli komandu. Probajte ponovo.")
 		} else if n == 0 || input == "" {
@@ -184,7 +184,6 @@ func (app *App) ReadValue(text string) string {
 
 func (app *App) ReadValueSimHash(text string) string {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(text)
 	input, _ := reader.ReadString('\n')
 	return input
 }

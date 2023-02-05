@@ -12,6 +12,10 @@ func (app *App) AddSH() {
 	var key string
 	for {
 		keyP := app.ReadValue("Unesite kljuc pod kojim ce se cuvati SimHash: ")
+		if !check(keyP) {
+			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
+			continue
+		}
 		keyP = SH + USER + keyP
 		value := app.ReadPath.Read(keyP)
 		if value != nil {
@@ -40,8 +44,10 @@ func (app *App) DeleteSH() {
 // Check two list
 func (app *App) CheckSH() {
 	key := app.ReadValue("Unesite kljuc po kojim se cuva SimHash: ")
+	key = SH + USER + key
 	value := app.ReadPath.Read(key)
 	if value == nil {
+		fmt.Println("Ne postoji SimHash sa ovim kljucem")
 		return
 	}
 	simvalue := app.ReadValueSimHash("Unesite sadrazaj sa kojim zelite porediti: ")

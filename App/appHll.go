@@ -11,14 +11,19 @@ func (app *App) AddHll() {
 	var key string
 	for {
 		keyP := app.ReadValue("Unesite kljuc pod koji zelite da se cuva HLL: ")
-		keyP = HLL + USER + keyP
-		record := app.ReadPath.Read(keyP)
-		if record == nil {
-			key = keyP
-			break
+		if !check(keyP) {
+			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
+			continue
 		}
+		keyP = HLL + USER + keyP
+		value := app.ReadPath.Read(keyP)
+		if value != nil {
+			fmt.Println("Vec postoji HLL pod ovakvim imenom. Molim vas unesite novi kljuc.")
+			continue
+		}
+		key = keyP
+		break
 
-		fmt.Println("Vec postoji ovaj HLL. Probajte Ponovo.")
 	}
 
 	var p int
@@ -27,11 +32,11 @@ func (app *App) AddHll() {
 		number, err := checkInt(pP)
 		if !err {
 			fmt.Println("Niste uneli broj.")
-		} else if HLLMIN >= number && number <= HLLMAX {
-			fmt.Println("P mora biti u opsegu od 4 do 16")
-		} else {
+		} else if HLLMIN <= number && number <= HLLMAX {
 			p = number
 			break
+		} else {
+			fmt.Println("P mora biti u opsegu od 4 do 16")
 		}
 	}
 	value := types.AddHLL(uint8(p))
@@ -71,5 +76,5 @@ func (app *App) CheckCardHLL() {
 		return
 	}
 	value := types.CheckCardinalityHLL(valueHll)
-	fmt.Println("Vrednos kardinalonosti: ", value)
+	fmt.Println("Vrednost kardinalonosti: ", value)
 }

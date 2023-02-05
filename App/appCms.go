@@ -37,14 +37,15 @@ func (app *App) AddNewCMS() {
 
 	var key string
 	for {
-		keyP := app.ReadValue("Unesite kljuc po kojim ce se cuvati: ")
+		keyP := app.ReadValue("Unesite kljuc pod kojim ce se cuvati: ")
+		if !check(keyP) {
+			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
+			continue
+		}
 		keyP = CMS + USER + keyP
 		value := app.ReadPath.Read(keyP)
 
-		if !check(key) {
-			fmt.Println("Ne mozete koristiti ovaj kljuc.  Molim vas unesite novi kljuc.")
-			continue
-		} else if value != nil {
+		if value != nil {
 			fmt.Println("Vec postoji CMS pod ovakvim imenom. Molim vas unesite novi kljuc.")
 			continue
 		}

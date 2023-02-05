@@ -1,5 +1,0 @@
-./Data/DataMultiple/SizeTiered/Data/data_l1_1.bin
-./Data/DataMultiple/SizeTiered/Data/index_l1_1.bin
-./Data/DataMultiple/SizeTiered/Data/summary_l1_1.bin
-./Data/DataMultiple/SizeTiered/Data/bloomfilter_l1_1.gob
-./Data/DataMultiple/SizeTiered/Data/Metadata_l1_1.txt

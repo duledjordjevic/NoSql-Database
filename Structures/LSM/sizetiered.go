@@ -17,9 +17,9 @@ import (
 	"strings"
 )
 
-func ssRemoveFile(openData *os.File, sufix string, dataPath string, config *configreader.ConfigReader) {
+func ssRemoveFile(sufix string, dataPath string, config *configreader.ConfigReader) {
 
-	openData.Close()
+	// openData.Close()
 	os.Remove(dataPath + "/" + "Metadata" + sufix + ".txt")
 	if config.DataFileStructure == "Single" {
 		os.Remove(dataPath + "/" + "data" + sufix + ".bin")
@@ -87,13 +87,13 @@ func SizeTiered(config *configreader.ConfigReader) {
 
 				sufix1 := "_" + startOfFile[1] + "_" + strings.Split(startOfFile[2], ".")[0]
 				sufix2 := "_" + startOfNextFile[1] + "_" + strings.Split(startOfNextFile[2], ".")[0]
-				// openData1.Close()
-				// openData2.Close()
+				openData1.Close()
+				openData2.Close()
 				// fmt.Println(openData1.Stat())
 				// fmt.Println(openData2.Stat())
 				// Delete files from Data
-				ssRemoveFile(openData1, sufix1, dataPath, config)
-				ssRemoveFile(openData2, sufix2, dataPath, config)
+				ssRemoveFile(sufix1, dataPath, config)
+				ssRemoveFile(sufix2, dataPath, config)
 
 				// Delete Toc files
 				os.Remove(tocPath + sufix1 + ".txt")
@@ -308,7 +308,7 @@ func compactSizeTired(data1 *os.File, data2 *os.File, ssTable *sstable.SStable, 
 	if structures == "Multiple" {
 		// fmt.Println("First and Last: ")
 		// fmt.Println("First -> ", firstRecord)
-		fmt.Println("Last -> ", finishRecord)
+		// fmt.Println("Last -> ", finishRecord)
 		// fmt.Println("Counter -> ", counter)
 		// fmt.Println("Offset data: ", offsetData)
 		// fmt.Println("Offset index: ", offsetIndex)

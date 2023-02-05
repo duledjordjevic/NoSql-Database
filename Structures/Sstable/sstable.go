@@ -775,7 +775,6 @@ func (table *SStable) PrintSStable() {
 }
 
 func (table *SStable) SearchOneFile(key string) *record.Record {
-	fmt.Println("ajshd")
 	file, err := os.Open(table.SStableFilePath)
 	if err != nil {
 		fmt.Println("Error open sstable", err)
@@ -808,7 +807,7 @@ func (table *SStable) SearchOneFile(key string) *record.Record {
 		if err != nil {
 			return nil
 		}
-		fmt.Println("Sumrec 1 : ", sumRec1)
+		// fmt.Println("Sumrec 1 : ", sumRec1)
 		currentPos, err := file.Seek(0, os.SEEK_CUR)
 		if err != nil {
 			fmt.Println("Error in curent position", err)
@@ -828,7 +827,7 @@ func (table *SStable) SearchOneFile(key string) *record.Record {
 			}
 
 			sumRec2, err := ReadSummary(file)
-			fmt.Println("Sumrec 2 : ", sumRec2)
+			// fmt.Println("Sumrec 2 : ", sumRec2)
 			if err != nil && err != io.EOF {
 				return nil
 			}

@@ -158,8 +158,8 @@ func GetIndex(filename string) int {
 func (wp *WritePath) ExitFlush() {
 	records := wp.MemTable.Flush()
 	if len(*records) != 0 {
-		fmt.Println("usooooooooo")
-		fmt.Println(records)
+		// fmt.Println("usooooooooo")
+		// fmt.Println(records)
 		if wp.Config.DataFileStructure == "Multiple" {
 			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
 

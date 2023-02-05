@@ -33,13 +33,17 @@ func (rp *ReadPath) Read(key string) []byte {
 	// First check in MemTable
 	record := rp.MemTable.Find(key)
 	if record != nil {
-		rp.Lru.AddElement(record.GetKey(), record.GetValue())
+		if record.GetTombStone() == 1 {
+			return nil
+		}
+		// rp.Lru.AddElement(record.GetKey(), record.GetValue())
 		return record.GetValue()
 	}
 
 	// Next check in Cache
 	value := rp.Lru.GetElement(key)
 	if value != nil {
+		fmt.Println("uso sam")
 		return value
 	}
 
@@ -66,12 +70,20 @@ func (rp *ReadPath) Read(key string) []byte {
 				if rp.ConfigReader.DataFileStructure == "Multiple" {
 					record := Sstable.Search(key)
 					if record != nil {
-						return record.GetValue()
+						if record.GetTombStone() == 0 {
+							rp.Lru.AddElement(record.GetKey(), record.GetValue())
+							return record.GetValue()
+						}
+						return nil
 					}
 				} else {
 					record := Sstable.SearchOneFile(key)
 					if record != nil {
-						return record.GetValue()
+						if record.GetTombStone() == 0 {
+							rp.Lru.AddElement(record.GetKey(), record.GetValue())
+							return record.GetValue()
+						}
+						return nil
 					}
 				}
 			}
@@ -82,12 +94,20 @@ func (rp *ReadPath) Read(key string) []byte {
 				if rp.ConfigReader.DataFileStructure == "Multiple" {
 					record := Sstable.Search(key)
 					if record != nil {
-						return record.GetValue()
+						if record.GetTombStone() == 0 {
+							rp.Lru.AddElement(record.GetKey(), record.GetValue())
+							return record.GetValue()
+						}
+						return nil
 					}
 				} else {
 					record := Sstable.SearchOneFile(key)
 					if record != nil {
-						return record.GetValue()
+						if record.GetTombStone() == 0 {
+							rp.Lru.AddElement(record.GetKey(), record.GetValue())
+							return record.GetValue()
+						}
+						return nil
 					}
 				}
 			}

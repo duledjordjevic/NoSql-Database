@@ -1,6 +1,6 @@
-wal_size: 10
-wal_buffer_capacity: 3
-max_number_of_segments: 10
+wal_size: 1
+wal_buffer_capacity: 1
+max_number_of_segments: 5
 memtable_trashold: 0.8
 memtable_size: 10
 memtable_structure: btree

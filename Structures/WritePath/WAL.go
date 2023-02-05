@@ -336,7 +336,8 @@ func (wal *WAL) Reconstruction() bool {
 		for _, fileName := range fileNames {
 			file, err := os.Open(dir + "/" + fileName)
 			if err != nil {
-				fmt.Println("Greska kod citanja -> WAL")
+				// fmt.Println("Greska kod citanja -> WAL")
+				continue
 			}
 			for {
 				record, _ := record.ReadRecord(file)
@@ -363,11 +364,12 @@ func (wal *WAL) Reconstruction() bool {
 
 			file, err := os.Open(fileName)
 			if err != nil {
-				fmt.Println("Greska kod citanja -> WAL")
+				// fmt.Println("Greska kod citanja -> WAL")
+				continue
 			}
 			for {
 				record, _ := record.ReadRecord(file)
-				fmt.Println(record)
+				// fmt.Println(record)
 				if record == nil {
 					break
 				}
@@ -387,7 +389,9 @@ func (wal *WAL) Reconstruction() bool {
 			file.Close()
 		}
 	}
-
+	if len(files) == 0 {
+		return true
+	}
 	for _, file := range files {
 		// Remove old segments
 		err := os.Remove(dir + "/" + file.Name())

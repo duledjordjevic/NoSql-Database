@@ -97,6 +97,7 @@ func (mem *MemTable) Add(record *record.Record) *[]*record.Record {
 	if mem.StructName == "btree" {
 		elements, found := mem.bTree.AddElement(record)
 		if found {
+			// fmt.Println("uso sam")
 			for i := range elements.Keys {
 				if elements.Keys[i].GetKey() == record.GetKey() {
 					elements.Keys[i] = record

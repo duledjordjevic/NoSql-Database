@@ -165,13 +165,13 @@ func cmsMenu(app *application.App) {
 		PrintCMSMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-			// add
+			app.AddNewCMS()
 		} else if input == "2" {
-			// delet
+			app.DeleteCMS()
 		} else if input == "3" {
-			// add element
+			app.AddElementCMS()
 		} else if input == "4" {
-			// check
+			app.CheckElementCMS()
 		} else if input == "5" {
 
 			// Back
