@@ -135,12 +135,9 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 			// calls between levels
 			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
 
-				fmt.Println("Kapacitet nivoa -> ", int(math.Pow(CAPACITY, float64(from))))
-				fmt.Println("Trenutni kapacitet nivoa -> ", len(tempSSTables))
-				fmt.Println("Kompakcija -> ", from, " -> ", to)
-				fmt.Println("Jebena formula -> ", lvl.calculateCapacity(to))
-				fmt.Println("-- NAREDNA KOMPAKCIJA --")
-				lvl.BetweenLevels(to, to+1)
+				if lvl.lsm.Config.LSMLevelMax < to+1 {
+					lvl.BetweenLevels(to, to+1)
+				}
 
 			}
 			return
@@ -187,12 +184,9 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 			lvl.GenerateLevels()
 			// calls between levels
 			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
-				fmt.Println("Kapacitet nivoa -> ", int(math.Pow(CAPACITY, float64(from))))
-				fmt.Println("Trenutni kapacitet nivoa -> ", len(tempSSTables))
-				fmt.Println("Kompakcija -> ", from, " -> ", to)
-				fmt.Println("Jebena formula -> ", lvl.calculateCapacity(to))
-				fmt.Println("-- NAREDNA KOMPAKCIJA --")
-				lvl.BetweenLevels(to, to+1)
+				if lvl.lsm.Config.LSMLevelMax < to+1 {
+					lvl.BetweenLevels(to, to+1)
+				}
 
 			}
 			return
@@ -360,14 +354,13 @@ func (lvl *Leveled) MoveBeginning(beginning *bool, fileCounter *int, to int, tem
 
 	if lvl.fromTo[lvl.first][0] < lvl.fromTo[lvl.second][0] && lvl.fromTo[lvl.first][1] < lvl.fromTo[lvl.second][0] {
 		// renaming file from first level
+		lvl.first.Close()
 		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, lvl.first.Name()))
 		delete(lvl.fromTo, lvl.first)
 		// open next file from first level
 		*counterFirst--
 		*fileCounter++
 		*iteratorFirst++
-
-		lvl.first.Close()
 
 		if *iteratorFirst > len(*firstLevel)-1 {
 			// no more files from level 1
@@ -384,14 +377,13 @@ func (lvl *Leveled) MoveBeginning(beginning *bool, fileCounter *int, to int, tem
 
 		// continue
 	} else if lvl.fromTo[lvl.second][0] < lvl.fromTo[lvl.first][0] && lvl.fromTo[lvl.second][1] < lvl.fromTo[lvl.first][0] {
+		lvl.second.Close()
 		*tempSSTables = append(*tempSSTables, lvl.RenameFile(*fileCounter, to, lvl.second.Name()))
 		delete(lvl.fromTo, lvl.second)
 		// open next file from second level
 		*counterSecond--
 		*fileCounter++
 		*iteratorSecond++
-
-		lvl.second.Close()
 
 		if *iteratorSecond > len(*secondLevel)-1 {
 			// no more files from level 2

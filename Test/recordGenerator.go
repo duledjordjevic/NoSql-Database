@@ -61,13 +61,13 @@ func ReadFile(filename string) error {
 			break
 		}
 		capacity += int(record.GetSize())
-		// fmt.Println(record.String())
+		fmt.Println(record.String())
 	}
 
 	return nil
 }
 
-func ReadLevel(level int, directory string, config *configreader.ConfigReader) {
+func ReadLevel(level int, directory string, config *configreader.ConfigReader) int {
 
 	LSM := lsm.LSM{Config: config}
 
@@ -104,5 +104,5 @@ func ReadLevel(level int, directory string, config *configreader.ConfigReader) {
 
 	fmt.Println("Na nivou ", level, " procitano je ", counter, " record-a")
 	// fmt.Println("Ocekivani broj record-a -> ")
-
+	return counter
 }
