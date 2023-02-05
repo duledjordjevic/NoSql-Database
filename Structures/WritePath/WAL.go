@@ -387,5 +387,12 @@ func (wal *WAL) Reconstruction() bool {
 		}
 	}
 
+	for _, file := range files {
+		// Remove old segments
+		err := os.Remove(dir + "/" + file.Name())
+		if err == nil {
+			fmt.Println("Neuspesno brisanje wala")
+		}
+	}
 	return true
 }
