@@ -326,7 +326,7 @@ func (wal *WAL) Reconstruction() bool {
 
 	fileNames := make([]string, 0)
 	for _, file := range files {
-		fileNames = append(fileNames, dir+"/"+file.Name())
+		fileNames = append(fileNames, file.Name())
 	}
 
 	fileNames = SortFiles(fileNames)
@@ -334,11 +334,10 @@ func (wal *WAL) Reconstruction() bool {
 	if len(fileNames) <= toReconstruct {
 		// treba iscitati ceo files
 		for _, fileName := range fileNames {
-			file, err := os.Open(fileName)
+			file, err := os.Open(dir + "/" + fileName)
 			if err != nil {
 				fmt.Println("Greska kod citanja -> WAL")
 			}
-
 			for {
 				record, _ := record.ReadRecord(file)
 				if record == nil {
@@ -357,6 +356,7 @@ func (wal *WAL) Reconstruction() bool {
 				}
 
 			}
+			file.Close()
 		}
 	} else {
 		for _, fileName := range fileNames[len(fileNames)-toReconstruct+1:] {
@@ -365,7 +365,6 @@ func (wal *WAL) Reconstruction() bool {
 			if err != nil {
 				fmt.Println("Greska kod citanja -> WAL")
 			}
-
 			for {
 				record, _ := record.ReadRecord(file)
 				fmt.Println(record)
@@ -393,7 +392,7 @@ func (wal *WAL) Reconstruction() bool {
 		// Remove old segments
 		err := os.Remove(dir + "/" + file.Name())
 		if err != nil {
-			fmt.Println("Neuspesno brisanje wala")
+			fmt.Println("Neuspesno brisanje wala", err)
 		}
 	}
 	return true
