@@ -6,7 +6,7 @@ memtable_size: 1
 memtable_structure: skiplist
 cache_capacity: 5
 compaction: SizeTiered
-lsm_leveled_max: 8
+lsm_level_max: 8
 lsm_max_l1_number: 10
 lsm_leveled_multiplier: 10
 lsm_leveled_data_capacity: 1024   
