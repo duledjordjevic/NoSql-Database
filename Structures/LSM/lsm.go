@@ -39,6 +39,7 @@ func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) []string {
 	if err != nil {
 		fmt.Println("Error, ", err)
 	}
+	defer file.Close()
 
 	defer file.Close()
 

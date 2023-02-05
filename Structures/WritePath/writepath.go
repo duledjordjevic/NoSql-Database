@@ -123,3 +123,31 @@ func GetIndex(filename string) int {
 	level, _ := strconv.Atoi(strings.Split(strings.Split(filename, "_")[2], ".")[0])
 	return level
 }
+
+func (wp *WritePath) ExitFlush() {
+	records := wp.MemTable.Flush()
+	if len(*records) != 0 {
+		fmt.Println("usooooooooo")
+		fmt.Println(records)
+		if wp.Config.DataFileStructure == "Multiple" {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction + "/Data"
+
+			SStable := sstable.NewSStableAutomatic(GenerateSufix(directory, 0), wp.Config)
+			SStable.FormSStableTest(records)
+
+		} else {
+			directory := DIRECTORY + wp.Config.DataFileStructure + "/" + wp.Config.Compaction
+			SStable := &sstable.SStable{
+				SStableFilePath: directory + "/Data" + "/data" + GenerateSufix(directory+"/Data", 0) + ".bin",
+				TOCFilePath:     directory + "/Toc" + "/TOC" + GenerateSufix(directory+"/Data", 0) + ".txt",
+				MetaDataPath:    directory + "/Data" + "/Metadata" + GenerateSufix(directory+"/Data", 0) + ".txt"}
+
+			SStable.FormSStableOneFile(records)
+		}
+		for _, rec := range *records {
+			wp.BloomFilter.Hash(rec.GetKey())
+		}
+
+	}
+
+}

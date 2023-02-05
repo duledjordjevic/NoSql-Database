@@ -33,6 +33,8 @@ const (
 	CMSDELTA    = 0.9
 	HLLMIN      = 4
 	HLLMAX      = 16
+
+	DIRECTORY = "./Data/Data"
 )
 
 type App struct {
@@ -59,10 +61,11 @@ func CreateApp() *App {
 	var BF *bloomfilter.BloomFilter
 	fileBloom, err := os.Open(filePath + "bloomfilter.gob")
 	if err == nil {
-		BF = bloomfilter.NewBLoomFilter(1000, 0.1)
-	} else {
 		fileBloom.Close()
+		BF = &bloomfilter.BloomFilter{}
 		BF.Decode(filePath + "bloomfilter.gob")
+	} else {
+		BF = bloomfilter.NewBLoomFilter(1000, 0.1)
 	}
 	app.Bloomfilter = BF
 
@@ -86,6 +89,7 @@ func CreateApp() *App {
 
 func (app *App) End() {
 	filePath := "./Data/Data" + app.Config.DataFileStructure + "/" + app.Config.Compaction + "/"
+	app.WritePath.ExitFlush()
 	app.Bloomfilter.Encode(filePath + "bloomfilter.gob")
 	os.Exit(1)
 }
@@ -170,6 +174,7 @@ func (app *App) Get() {
 	value := app.ReadPath.Read(key)
 	if value == nil {
 		fmt.Println("Pretraga neuspesna. Kljuc ne postoji.")
+		return
 	}
 	fmt.Println("Vrenost datog kluca je: ", value)
 }
@@ -201,7 +206,7 @@ func (app *App) RangeScan() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
-		} else if number < 0 || number > len(folder) {
+		} else if number < 0 || number > len(folder)-1 {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
 		} else {
@@ -220,7 +225,7 @@ func (app *App) RangeScan() {
 		if key1 < key2 {
 			break
 		}
-		fmt.Println("Lose se uneli kjuceve. Prvi kljc mora biti manji od drugog.")
+		fmt.Println("Lose se uneli kjuceve. Prvi kljuc mora biti manji od drugog.")
 	}
 
 	var size uint64
@@ -276,7 +281,7 @@ func (app *App) List() {
 		if err != nil {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
-		} else if number < 0 || number > len(folder) {
+		} else if number < 0 || number > len(folder)-1 {
 			fmt.Println("Uneli ste losu vrednost. Unesite ponovo.")
 			continue
 		} else {

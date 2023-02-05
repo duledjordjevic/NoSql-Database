@@ -2,7 +2,7 @@ package main
 
 import (
 	application "NAiSP/App"
-	"fmt"
+	menu "NAiSP/Menu"
 )
 
 // bloomfilter "NAiSP/Structures/Bloomfilter"
@@ -15,5 +15,6 @@ import (
 
 func main() {
 	app := application.CreateApp()
-	fmt.Println(app.ReadValue("inexi :"))
+	menu.Start(app)
+	// fmt.Println(app.ReadValue("inexi :"))
 }

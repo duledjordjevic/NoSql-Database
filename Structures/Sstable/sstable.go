@@ -185,13 +185,13 @@ func (table *SStable) CreateWriters(files []*os.File) []*bufio.Writer {
 
 func (table *SStable) CloseFiles(files []*os.File) {
 	files[0].Close()
-	// fmt.Println(files[0].Stat())
 	files[1].Close()
-	// fmt.Println(files[1].Stat())
 	files[2].Close()
-	// fmt.Println(files[2].Stat())
 	files[3].Close()
 	// fmt.Println(files[3].Stat())
+	if len(files) == 5 {
+		files[4].Close()
+	}
 
 }
 
@@ -400,7 +400,7 @@ func (table *SStable) searchRecord(key string, offset uint64) *record.Record {
 
 func searchDataRange(keyRange1 string, keyRange2 string, file *os.File, numRecords uint64) []record.Record {
 	records := make([]record.Record, 0)
-	i := 1
+	i := 0
 	for {
 		if i >= int(numRecords) {
 			return records
@@ -508,7 +508,7 @@ func (table *SStable) SearchPrefixMultiple(key string, numRecords uint64) []reco
 		records := searchDataPrefix(key, fileData, numRecords)
 		return records
 	} else {
-		fmt.Println("Neuspesna pretraga")
+		// fmt.Println("Neuspesna pretraga")
 		return nil
 	}
 }
@@ -592,6 +592,7 @@ func copyAndDelete(file *os.File, sourceFile *os.File) {
 		fmt.Println("Error:", err)
 		return
 	}
+	// file.Close()
 }
 func (table *SStable) CopyAllandWriteHeader(sizes []uint64, files []*os.File, writers []*bufio.Writer) {
 	data := make([]byte, 0)
@@ -753,6 +754,7 @@ func (table *SStable) PrintSStable() {
 }
 
 func (table *SStable) SearchOneFile(key string) *record.Record {
+	fmt.Println("ajshd")
 	file, err := os.Open(table.SStableFilePath)
 	if err != nil {
 		fmt.Println("Error open sstable", err)
@@ -785,14 +787,29 @@ func (table *SStable) SearchOneFile(key string) *record.Record {
 		if err != nil {
 			return nil
 		}
+		fmt.Println("Sumrec 1 : ", sumRec1)
+		currentPos, err := file.Seek(0, os.SEEK_CUR)
+		if err != nil {
+			fmt.Println("Error in curent position", err)
+			return nil
+		}
+		if int64(HEADER+bloomSize+sumSize) <= currentPos {
+			return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
+		}
 		for {
-
-			sumRec2, err := ReadSummary(file)
-			if err != nil && err != io.EOF {
+			currentPos, err = file.Seek(0, os.SEEK_CUR)
+			if err != nil {
+				fmt.Println("Error in curent position", err)
 				return nil
 			}
-			if err == io.EOF {
+			if int64(HEADER+bloomSize+sumSize) <= currentPos {
 				return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
+			}
+
+			sumRec2, err := ReadSummary(file)
+			fmt.Println("Sumrec 2 : ", sumRec2)
+			if err != nil && err != io.EOF {
+				return nil
 			}
 			if key == sumRec1.GetKey() {
 				return table.searchRecordOneFile(file, key, sumRec1.GetOffsetSum(), bloomSize, sumSize, indexSize)
