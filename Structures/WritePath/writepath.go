@@ -6,7 +6,6 @@ import (
 	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
-	wal "NAiSP/Structures/WAL"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,7 +20,7 @@ const (
 
 // Store all types
 type WritePath struct {
-	Wal         *wal.WAL
+	Wal         *WAL
 	MemTable    *memtable.MemTable
 	BloomFilter *bloomfilter.BloomFilter
 	Config      *configreader.ConfigReader
