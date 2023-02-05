@@ -12,11 +12,7 @@ import (
 
 func (lvl *Leveled) calculateCapacity(level int) int {
 	duzinaNivoa := lvl.levels[level]
-	fmt.Println("Prvi deo jednacine -> ", math.Ceil(float64(len(duzinaNivoa))))
-	fmt.Println("Drugi deo jednacine -> ", PERCENT*math.Pow(CAPACITY, float64(level)))
-	fmt.Println("Rezultat -> ", math.Ceil(float64(len(duzinaNivoa))-PERCENT*math.Pow(CAPACITY, float64(level))))
-	fmt.Println("Nakon konverzije -> ", int(math.Ceil(float64(len(duzinaNivoa))-PERCENT*math.Pow(CAPACITY, float64(level)))))
-	return int(math.Ceil(float64(len(duzinaNivoa)) - PERCENT*math.Pow(CAPACITY, float64(level))))
+	return int(math.Ceil(float64(len(duzinaNivoa)) - PERCENT*float64(lvl.lsm.Config.LSMlevel1Number)*math.Pow(float64(lvl.lsm.Config.LSMmultiplier), float64(level-1))))
 }
 
 func (lvl *Leveled) BetweenLevels(from int, to int) {
@@ -133,9 +129,9 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 			lvl.GenerateLevels()
 			// calls between levels
-			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
+			if len(tempSSTables) > int(float64(lvl.lsm.Config.LSMlevel1Number)*(math.Pow(float64(lvl.lsm.Config.LSMmultiplier), float64(to-1)))) {
 
-				if lvl.lsm.Config.LSMLevelMax < to+1 {
+				if lvl.lsm.Config.LSMLevelMax > to+1 {
 					lvl.BetweenLevels(to, to+1)
 				}
 
@@ -183,8 +179,9 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 
 			lvl.GenerateLevels()
 			// calls between levels
-			if len(tempSSTables) > int(math.Pow(CAPACITY, float64(to))) {
-				if lvl.lsm.Config.LSMLevelMax < to+1 {
+			if len(tempSSTables) > int(float64(lvl.lsm.Config.LSMlevel1Number)*(math.Pow(float64(lvl.lsm.Config.LSMmultiplier), float64(to-1)))) {
+
+				if lvl.lsm.Config.LSMLevelMax > to+1 {
 					lvl.BetweenLevels(to, to+1)
 				}
 
@@ -209,7 +206,7 @@ func (lvl *Leveled) BetweenLevels(from int, to int) {
 		currentCapacity += int(minimumRecord.GetSize())
 
 		// if current sstable reached capacity -> make a new one
-		if currentCapacity > SSTABLE_CAPACITY {
+		if currentCapacity > lvl.lsm.Config.LSMDataCapacity {
 
 			// completing formation of SSTable
 			SSTable.CopyExistingToSummary(firstHeaderRecord, lastHeaderRecord, files, writers)

@@ -18,12 +18,10 @@ import (
 )
 
 const (
-	CAPACITY         = 2
-	TEMPORARY_NAME   = "_TEMP_"
-	SSTABLE_CAPACITY = 200
-	PREFIX           = "./Data/Data"
-	SUFIX            = "/Data"
-	PERCENT          = 0.7
+	TEMPORARY_NAME = "_TEMP_"
+	PREFIX         = "./Data/Data"
+	SUFIX          = "/Data"
+	PERCENT        = 0.7
 )
 
 type Leveled struct {
@@ -35,9 +33,6 @@ type Leveled struct {
 	fromTo    map[*os.File][]string
 	first     *os.File
 	second    *os.File
-
-	BROJACRECORDA         int
-	BROJACPRENETIHFAJLOVA int
 }
 
 func NewLeveled(config *configreader.ConfigReader, lsm *LSM) *Leveled {
@@ -92,8 +87,6 @@ func (lvl *Leveled) ZeroToFirst() {
 	var first *os.File
 	counter0 := len(lvl.levels[0])
 	counter1 := len(lvl.levels[1])
-
-	lvl.BROJACRECORDA = 0
 
 	iterator := 0
 
@@ -181,7 +174,7 @@ func (lvl *Leveled) ZeroToFirst() {
 
 			lvl.GenerateLevels()
 
-			if len(tempSSTables) > CAPACITY {
+			if len(tempSSTables) > lvl.lsm.Config.LSMlevel1Number {
 				lvl.BetweenLevels(1, 2)
 			}
 			// end of compaction
@@ -217,7 +210,6 @@ func (lvl *Leveled) ZeroToFirst() {
 
 					remainingSSTable := lvl.RenameFile(fileCounter, 1, firstFile)
 					fileCounter++
-					lvl.BROJACPRENETIHFAJLOVA++
 
 					// append renamed to temp
 					tempSSTables = append(tempSSTables, remainingSSTable)
@@ -230,7 +222,7 @@ func (lvl *Leveled) ZeroToFirst() {
 
 			lvl.GenerateLevels()
 			// calls between levels
-			if len(tempSSTables) > CAPACITY {
+			if len(tempSSTables) > lvl.lsm.Config.LSMlevel1Number {
 				lvl.BetweenLevels(1, 2)
 			}
 
@@ -306,7 +298,7 @@ func (lvl *Leveled) ZeroToFirst() {
 		currentCapacity += int(lvl.records[minimumFile].GetSize())
 
 		// if current sstable reached capacity -> make a new one
-		if currentCapacity > SSTABLE_CAPACITY {
+		if currentCapacity > lvl.lsm.Config.LSMDataCapacity {
 
 			// completing formation of SSTable
 			SSTable.CopyExistingToSummary(firstRecord, lastRecord, files, writers)
@@ -328,8 +320,6 @@ func (lvl *Leveled) ZeroToFirst() {
 			// add record
 			offsetData, offsetIndex = SSTable.AddRecord(counter, offsetData, offsetIndex, lvl.records[minimumFile], bf, merkle, writers)
 
-			lvl.BROJACRECORDA++
-
 			counter++
 			// TODO
 		} else {
@@ -341,7 +331,6 @@ func (lvl *Leveled) ZeroToFirst() {
 			offsetData, offsetIndex = SSTable.AddRecord(counter, offsetData, offsetIndex, lvl.records[minimumFile], bf, merkle, writers)
 			counter++
 
-			lvl.BROJACRECORDA++
 			// TODO
 		}
 
@@ -472,7 +461,7 @@ func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCa
 
 		currentCapacity += int(nextRecord.GetSize())
 		// if current sstable reached capacity -> make a new one
-		if currentCapacity > SSTABLE_CAPACITY {
+		if currentCapacity > lvl.lsm.Config.LSMDataCapacity {
 
 			// completing formation of SSTable
 			SSTable.CopyExistingToSummary(firstHeaderRecord, lastHeaderRecord, files, writers)
@@ -495,7 +484,6 @@ func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCa
 			offsetData, offsetIndex = SSTable.AddRecord(counter, offsetData, offsetIndex, nextRecord, bf, merkle, writers)
 			counter++
 
-			lvl.BROJACRECORDA++
 			// TODO
 		} else {
 			// add record
@@ -503,7 +491,6 @@ func (lvl *Leveled) EmptyFile(file *os.File, SSTable *sstable.SStable, currentCa
 			offsetData, offsetIndex = SSTable.AddRecord(counter, offsetData, offsetIndex, nextRecord, bf, merkle, writers)
 			counter++
 
-			lvl.BROJACRECORDA++
 			// TODO
 		}
 
