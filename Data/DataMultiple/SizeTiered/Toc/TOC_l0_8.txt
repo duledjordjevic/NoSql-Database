@@ -1,5 +1,0 @@
-./Data/DataMultiple/SizeTiered/Data/data_l0_8.bin
-./Data/DataMultiple/SizeTiered/Data/index_l0_8.bin
-./Data/DataMultiple/SizeTiered/Data/summary_l0_8.bin
-./Data/DataMultiple/SizeTiered/Data/bloomfilter_l0_8.gob
-./Data/DataMultiple/SizeTiered/Data/Metadata_l0_8.txt

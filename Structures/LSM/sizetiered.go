@@ -96,6 +96,8 @@ func SizeTiered(config *configreader.ConfigReader) {
 				ssRemoveFile(sufix2, dataPath, config)
 
 				// Delete Toc files
+				fmt.Println(tocPath + sufix1 + ".txt")
+				fmt.Println(tocPath + sufix2 + ".txt")
 				os.Remove(tocPath + sufix1 + ".txt")
 				os.Remove(tocPath + sufix2 + ".txt")
 

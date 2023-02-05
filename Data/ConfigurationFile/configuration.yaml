@@ -1,18 +1,15 @@
 wal_size: 1
-wal_buffer_capacity: 1
+wal_buffer_capacity: 3
 max_number_of_segments: 5
 memtable_trashold: 0.8
-memtable_size: 10
-memtable_structure: btree
+memtable_size: 1
+memtable_structure: skiplist
 cache_capacity: 5
 compaction: SizeTiered
 lsm_leveled_max: 8
-lsm_max_l0_number: 8 
 lsm_max_l1_number: 10
-lsm_leveled_multiplier: 10   
+lsm_leveled_multiplier: 10
+lsm_leveled_data_capacity: 1024   
 token_bucket_capacity: 3
-token_bucket_duration: 3000000000
+token_bucket_duration: 600000000
 data_file_structure: Multiple
-
-
-

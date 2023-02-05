@@ -3,6 +3,7 @@
 package tokenbucket
 
 import (
+	configreader "NAiSP/Structures/ConfigReader"
 	"fmt"
 	"time"
 )
@@ -16,14 +17,17 @@ type TokenBucket struct {
 }
 
 // Constructor
-func NewTokenBucket() *TokenBucket {
+func NewTokenBucket(configreader *configreader.ConfigReader) *TokenBucket {
 
 	// for testing
 	// return &TokenBucket{
 	// 	Duration: 3000000000,
 	// 	Capacity: 3,
 	// }
-	return &TokenBucket{}
+	return &TokenBucket{
+		Duration: configreader.TokenBucketDuration,
+		Capacity: configreader.TokenBucketCapacity,
+	}
 
 }
 

@@ -9,6 +9,7 @@ import (
 	readpath "NAiSP/Structures/ReadPath"
 	record "NAiSP/Structures/Record"
 	sstable "NAiSP/Structures/Sstable"
+	tokenbucket "NAiSP/Structures/TokenBucket"
 	writepath "NAiSP/Structures/WritePath"
 	tester "NAiSP/Test"
 	"bufio"
@@ -44,6 +45,7 @@ type App struct {
 	Wal         *writepath.WAL
 	WritePath   *writepath.WritePath
 	ReadPath    *readpath.ReadPath
+	TokenBucket *tokenbucket.TokenBucket
 }
 
 func CreateApp() *App {
@@ -86,6 +88,9 @@ func CreateApp() *App {
 		Lru:          app.Lru,
 		BloomFilter:  app.Bloomfilter,
 		ConfigReader: &config}
+
+	// Create tocken
+	app.TokenBucket = tokenbucket.NewTokenBucket(&config)
 
 	return &app
 }

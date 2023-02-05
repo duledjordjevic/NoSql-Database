@@ -11,20 +11,22 @@ func Start(app *application.App) {
 		PrintMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-
-			app.Put()
+			if app.TokenBucket.GetPermission() {
+				app.Put()
+			}
 
 		} else if input == "2" {
-
-			app.Delete()
+			if app.TokenBucket.GetPermission() {
+				app.Delete()
+			}
 
 		} else if input == "3" {
-
 			search(app)
 
 		} else if input == "4" {
-
-			app.Compaction()
+			if app.TokenBucket.GetPermission() {
+				app.Compaction()
+			}
 
 		} else if input == "5" {
 
@@ -46,17 +48,20 @@ func search(app *application.App) {
 		PrintSearchMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-
 			//Normal search
-			app.Get()
+			if app.TokenBucket.GetPermission() {
+				app.Get()
+			}
 
 		} else if input == "2" {
-
-			app.RangeScan()
+			if app.TokenBucket.GetPermission() {
+				app.RangeScan()
+			}
 
 		} else if input == "3" {
-
-			app.List()
+			if app.TokenBucket.GetPermission() {
+				app.List()
+			}
 
 		} else if input == "4" {
 
@@ -125,22 +130,30 @@ func bfMenu(app *application.App) {
 		if input == "1" {
 
 			// ADD Bloomfilter function
-			app.AddBloom()
+			if app.TokenBucket.GetPermission() {
+				app.AddBloom()
+			}
 
 		} else if input == "2" {
 
 			// delete
-			app.DeleteBloom()
+			if app.TokenBucket.GetPermission() {
+				app.DeleteBloom()
+			}
 
 		} else if input == "3" {
 
 			// add element
-			app.AddElementBloom()
+			if app.TokenBucket.GetPermission() {
+				app.AddElementBloom()
+			}
 
 		} else if input == "4" {
 
 			// check
-			app.CheckElementBloom()
+			if app.TokenBucket.GetPermission() {
+				app.CheckElementBloom()
+			}
 
 		} else if input == "5" {
 
@@ -165,13 +178,21 @@ func cmsMenu(app *application.App) {
 		PrintCMSMenu()
 		input := app.ReadValue("Unesite komandu: ")
 		if input == "1" {
-			app.AddNewCMS()
+			if app.TokenBucket.GetPermission() {
+				app.AddNewCMS()
+			}
 		} else if input == "2" {
-			app.DeleteCMS()
+			if app.TokenBucket.GetPermission() {
+				app.DeleteCMS()
+			}
 		} else if input == "3" {
-			app.AddElementCMS()
+			if app.TokenBucket.GetPermission() {
+				app.AddElementCMS()
+			}
 		} else if input == "4" {
-			app.CheckElementCMS()
+			if app.TokenBucket.GetPermission() {
+				app.CheckElementCMS()
+			}
 		} else if input == "5" {
 
 			// Back
@@ -197,22 +218,30 @@ func hllMenu(app *application.App) {
 		if input == "1" {
 
 			// add
-			app.AddHll()
+			if app.TokenBucket.GetPermission() {
+				app.AddHll()
+			}
 
 		} else if input == "2" {
 
 			// delet
-			app.DeleteHLL()
+			if app.TokenBucket.GetPermission() {
+				app.DeleteHLL()
+			}
 
 		} else if input == "3" {
 
 			// add element
-			app.AddElementHLL()
+			if app.TokenBucket.GetPermission() {
+				app.AddElementHLL()
+			}
 
 		} else if input == "4" {
 
 			// chech
-			app.CheckCardHLL()
+			if app.TokenBucket.GetPermission() {
+				app.CheckCardHLL()
+			}
 
 		} else if input == "5" {
 
@@ -239,17 +268,23 @@ func shMenu(app *application.App) {
 		if input == "1" {
 
 			// Add
-			app.AddSH()
+			if app.TokenBucket.GetPermission() {
+				app.AddSH()
+			}
 
 		} else if input == "2" {
 
 			// delet
-			app.DeleteSH()
+			if app.TokenBucket.GetPermission() {
+				app.DeleteSH()
+			}
 
 		} else if input == "3" {
 
 			// check
-			app.CheckSH()
+			if app.TokenBucket.GetPermission() {
+				app.CheckSH()
+			}
 
 		} else if input == "4" {
 
