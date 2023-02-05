@@ -1,10 +1,16 @@
 package tester
 
 import (
+	configreader "NAiSP/Structures/ConfigReader"
+	lsm "NAiSP/Structures/LSM"
 	record "NAiSP/Structures/Record"
+	writepath "NAiSP/Structures/WritePath"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -28,11 +34,14 @@ func randomValue(length int) *[]byte {
 		fmt.Println("error:", err)
 		return nil
 	}
+	if len(bytes) == 0 {
+		bytes = []byte("Trajce legenda")
+	}
 	return &bytes
 }
 
 func RandomRecord() *record.Record {
-	return record.NewRecordKeyValue(randomKey(6, charset), *randomValue(10), 0)
+	return record.NewRecordKeyValue(randomKey(10, charset), *randomValue(10), 0)
 }
 
 func ReadFile(filename string) error {
@@ -56,4 +65,44 @@ func ReadFile(filename string) error {
 	}
 
 	return nil
+}
+
+func ReadLevel(level int, directory string, config *configreader.ConfigReader) {
+
+	LSM := lsm.LSM{Config: config}
+
+	counter := 0
+	fileCounter := 0
+	files, err := ioutil.ReadDir(directory)
+	if err != nil {
+		fmt.Println("Greska kod citanja direktorijuma: ", err)
+		log.Fatal(err)
+	}
+
+	var fileToRead *os.File
+
+	for _, file := range files {
+		if strings.Contains(file.Name(), "data") && !strings.Contains(file.Name(), "Meta") && writepath.GetLevel(file.Name()) == level {
+			filename := directory + "/" + file.Name()
+			fileToRead = LSM.OpenData(filename)
+
+			fmt.Println("Datoteka ", fileCounter, " -> ", file.Name())
+
+			for {
+				rec, _ := record.ReadRecord(fileToRead)
+				if rec == nil {
+					break
+				}
+				fmt.Println(rec.String())
+				counter++
+			}
+			fileCounter++
+			fmt.Println("----------------------------------------")
+
+		}
+	}
+
+	fmt.Println("Na nivou ", level, " procitano je ", counter, " record-a")
+	// fmt.Println("Ocekivani broj record-a -> ")
+
 }

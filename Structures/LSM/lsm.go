@@ -40,6 +40,8 @@ func (lsm *LSM) ReadHeader(SSTable *sstable.SStable) []string {
 		fmt.Println("Error, ", err)
 	}
 
+	defer file.Close()
+
 	file.Seek(0, 0)
 
 	if lsm.Config.DataFileStructure == "Single" {

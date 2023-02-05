@@ -149,8 +149,7 @@ func ReadRecord(file *os.File) (*Record, error) {
 	// citanje zaglavlja -> od CRC-a do pocetka kljuca
 	_, err := io.ReadAtLeast(file, bytes, CRC_SIZE+TIMESTAMP_SIZE+TOMBSTONE_SIZE+KEY_SIZE_SIZE+VALUE_SIZE_SIZE)
 	if err != nil {
-		//fmt.Println("Greska kod citanja Header-a")
-		//log.Fatal(err)
+		// fmt.Println("Greska kod citanja record-a ", err)
 		return nil, err
 	}
 	// konvertovanje velicine kljuca i velicine vrednosti u brojeve

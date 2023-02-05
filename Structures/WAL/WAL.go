@@ -65,7 +65,7 @@ func (wal *WAL) AddRecord(rec *record.Record) bool {
 	if wal.RecordsInSegment == SEGMENT_CAPACITY {
 
 		// Create new log and close current file
-		fmt.Println("NAPUNIO SE CEO SEGMENT. ")
+		// fmt.Println("NAPUNIO SE CEO SEGMENT. ")
 		wal.RecordsInSegment = 0
 		wal.AddLog()
 		file.Close()
@@ -104,7 +104,7 @@ func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 	if len(wal.Buffer) == cap(wal.Buffer) {
 
 		// Open file for writing
-		fmt.Println("Buffer je pun, sledi upis sledecih elemenata: ")
+		// fmt.Println("Buffer je pun, sledi upis sledecih elemenata: ")
 		file, err := os.OpenFile(wal.CurrentLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 
 		if err != nil {
@@ -118,7 +118,7 @@ func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 			// Check if we reached max number of records in segment
 			if wal.RecordsInSegment == SEGMENT_CAPACITY {
 
-				fmt.Println("NAPUNIO SE CEO SEGMENT. ")
+				// fmt.Println("NAPUNIO SE CEO SEGMENT. ")
 				wal.RecordsInSegment = 0
 				wal.AddLog()
 				file.Close()
@@ -203,7 +203,7 @@ func (wal *WAL) DeleteSegments() {
 
 	// Iterate through files in dir
 	for _, file := range files {
-		fmt.Println(file.Name())
+		// fmt.Println(file.Name())
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Leaving only two newest segments
@@ -239,7 +239,7 @@ func (wal *WAL) RenameSegments() {
 
 	// Iterate through files in dir
 	for _, file := range files {
-		fmt.Println(file.Name())
+		// fmt.Println(file.Name())
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Renaming two segments to be the new two oldest
@@ -271,8 +271,8 @@ func (wal *WAL) RenameSegments() {
 func (wal *WAL) ReadRecords() bool {
 
 	file, err := os.Open(wal.CurrentLog)
-	fmt.Println(wal.CurrentLog)
-	fmt.Println("PODACI IZ FAJLA")
+	// fmt.Println(wal.CurrentLog)
+	// fmt.Println("PODACI IZ FAJLA")
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +285,7 @@ func (wal *WAL) ReadRecords() bool {
 		}
 		// CRC check
 		if rec.CheckCRC() {
-			fmt.Println(rec.String())
+			// fmt.Println(rec.String())
 		}
 	}
 
