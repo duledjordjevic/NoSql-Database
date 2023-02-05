@@ -1,11 +1,14 @@
 package wal
 
 import (
+	configreader "NAiSP/Structures/ConfigReader"
+	memtable "NAiSP/Structures/Memtable"
 	record "NAiSP/Structures/Record"
 	"fmt"
-	"io"
 	"io/ioutil"
+	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -23,29 +26,41 @@ import (
    Timestamp = Timestamp of the operation in seconds
 */
 
-const (
-	BUFFER_CAPACITY            = 3
-	SEGMENT_CAPACITY           = 10
-	MAXIMUM_NUMBER_OF_SEGMENTS = 5
-)
+// wal_size: 10
+// wal_config.wal_config.WalBufferCapacity: 3
+// max_number_of_segments: 10
+
+// WalSize             int           `yaml:"wal_size"`
+// WalBufferCapacity   int           `yaml:"wal_config.WalBufferCapacity"`
+// MaxNumberOfSegments int
+
+// SEGMENT_CAPACITY           = 10
+// MAXIMUM_NUMBER_OF_SEGMENTS = 5
 
 type WAL struct {
 	Buffer              []*record.Record
 	RecordsInSegment    uint
 	CurrentLog          string
 	MaxNumberOfSegments uint
+	Config              *configreader.ConfigReader
+	Memtable            *memtable.MemTable
+	LastRecord          *record.Record
 }
 
-func NewWal() *WAL {
+func NewWal(config *configreader.ConfigReader, memtable *memtable.MemTable, lastRecord *record.Record) *WAL {
 
-	records := make([]*record.Record, 0, BUFFER_CAPACITY)
+	records := make([]*record.Record, 0, config.WalBufferCapacity)
 	firstlog := "../NAiSP/Data/Wal/wal_001.log"
 
 	return &WAL{
 		Buffer:              records,
 		RecordsInSegment:    0,
 		CurrentLog:          firstlog,
-		MaxNumberOfSegments: 1}
+		MaxNumberOfSegments: 1,
+		Config:              config,
+		Memtable:            memtable,
+		LastRecord:          lastRecord,
+	}
 }
 
 // Function for adding new Record
@@ -62,7 +77,7 @@ func (wal *WAL) AddRecord(rec *record.Record) bool {
 	defer file.Close()
 
 	// Check if we reached max number of records in segment
-	if wal.RecordsInSegment == SEGMENT_CAPACITY {
+	if wal.RecordsInSegment == uint(wal.Config.WalSize) {
 
 		// Create new log and close current file
 		// fmt.Println("NAPUNIO SE CEO SEGMENT. ")
@@ -72,7 +87,7 @@ func (wal *WAL) AddRecord(rec *record.Record) bool {
 
 		wal.MaxNumberOfSegments += 1
 		// Delete segments if we reached max number of segments
-		if wal.MaxNumberOfSegments == MAXIMUM_NUMBER_OF_SEGMENTS {
+		if wal.MaxNumberOfSegments == uint(wal.Config.MaxNumberOfSegments) {
 			wal.DeleteSegments()
 		}
 		file1, err := os.OpenFile(wal.CurrentLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -116,7 +131,7 @@ func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 		for _, record := range wal.Buffer {
 
 			// Check if we reached max number of records in segment
-			if wal.RecordsInSegment == SEGMENT_CAPACITY {
+			if wal.RecordsInSegment == uint(wal.Config.WalSize) {
 
 				// fmt.Println("NAPUNIO SE CEO SEGMENT. ")
 				wal.RecordsInSegment = 0
@@ -125,7 +140,7 @@ func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 
 				wal.MaxNumberOfSegments += 1
 				// Delete segments if we reached max number of segments
-				if wal.MaxNumberOfSegments == MAXIMUM_NUMBER_OF_SEGMENTS {
+				if wal.MaxNumberOfSegments == uint(wal.Config.MaxNumberOfSegments) {
 					wal.DeleteSegments()
 				}
 				file1, err := os.OpenFile(wal.CurrentLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -144,7 +159,7 @@ func (wal *WAL) AddRecordBuffered(rec *record.Record) bool {
 		}
 
 		// Empty buffer
-		wal.Buffer = make([]*record.Record, 0, BUFFER_CAPACITY)
+		wal.Buffer = make([]*record.Record, 0, wal.Config.WalBufferCapacity)
 	}
 
 	return true
@@ -207,10 +222,10 @@ func (wal *WAL) DeleteSegments() {
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Leaving only two newest segments
-		if number == (MAXIMUM_NUMBER_OF_SEGMENTS - 1) {
+		if number == (wal.Config.MaxNumberOfSegments - 1) {
 			continue
 		}
-		if number == MAXIMUM_NUMBER_OF_SEGMENTS {
+		if number == wal.Config.MaxNumberOfSegments {
 			continue
 		}
 
@@ -243,7 +258,7 @@ func (wal *WAL) RenameSegments() {
 		number, _ := GetNumberFromPath(file.Name())
 
 		// Renaming two segments to be the new two oldest
-		if number == (MAXIMUM_NUMBER_OF_SEGMENTS - 1) {
+		if number == (wal.Config.MaxNumberOfSegments - 1) {
 			newPath := "../NAiSP/Data/Wal/wal_001.log"
 			// Renaming
 			err := os.Rename(dir+"/"+file.Name(), newPath)
@@ -251,7 +266,7 @@ func (wal *WAL) RenameSegments() {
 				fmt.Println(err)
 			}
 		}
-		if number == MAXIMUM_NUMBER_OF_SEGMENTS {
+		if number == wal.Config.MaxNumberOfSegments {
 			newPath := "../NAiSP/Data/Wal/wal_002.log"
 			// Renaming
 			err := os.Rename(dir+"/"+file.Name(), newPath)
@@ -266,26 +281,110 @@ func (wal *WAL) RenameSegments() {
 	wal.MaxNumberOfSegments = 2
 }
 
+func (wal *WAL) calculateReconstruction() int {
+
+	return int(math.Ceil(float64(wal.Config.MemtableSize/wal.Config.WalSize)) + 1)
+}
+
+func SortFiles(files []string) []string {
+
+	mapFiles := make(map[int]string)
+
+	// Need to store ints
+	var keys []int
+	// Need to store values
+	var values []string
+
+	for _, file := range files {
+
+		number, _ := GetNumberFromPath(file)
+		keys = append(keys, number)
+		mapFiles[number] = file
+	}
+
+	sort.Ints(keys)
+	for _, k := range keys {
+		values = append(values, mapFiles[k])
+	}
+
+	return values
+}
+
 // NOT FINISHED YET, WAITING FOR MMAP MECHANISM
 // Function for loading the newest log - only one that we need
-func (wal *WAL) ReadRecords() bool {
+func (wal *WAL) Reconstruction() bool {
 
-	file, err := os.Open(wal.CurrentLog)
-	fmt.Println(wal.CurrentLog)
-	fmt.Println("PODACI IZ FAJLA")
+	toReconstruct := wal.calculateReconstruction()
+
+	// Path
+	dir := "../NAiSP/Data/Wal"
+
+	// Reading directory
+	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
-	defer file.Close()
 
-	for {
-		rec, err := record.ReadRecord(file)
-		if err == io.EOF {
-			break
+	fileNames := make([]string, 0)
+	for _, file := range files {
+		fileNames = append(fileNames, file.Name())
+	}
+
+	fileNames = SortFiles(fileNames)
+
+	if len(fileNames) <= toReconstruct {
+		// treba iscitati ceo files
+		for _, fileName := range fileNames {
+			file, err := os.Open(fileName)
+			if err != nil {
+				fmt.Println("Greska kod citanja -> WAL")
+			}
+
+			for {
+				record, _ := record.ReadRecord(file)
+				if record == nil {
+					break
+				}
+				if !record.CheckCRC() {
+					continue
+				}
+				if wal.LastRecord == nil {
+					wal.Memtable.Add(record)
+					continue
+				}
+				if record.GetTimeStamp() > wal.LastRecord.GetTimeStamp() {
+					wal.Memtable.Add(record)
+					continue
+				}
+
+			}
 		}
-		// CRC check
-		if rec.CheckCRC() {
-			fmt.Println(rec.String())
+	} else {
+		for _, fileName := range fileNames[len(fileNames)-toReconstruct+1:] {
+
+			file, err := os.Open(fileName)
+			if err != nil {
+				fmt.Println("Greska kod citanja -> WAL")
+			}
+
+			for {
+				record, _ := record.ReadRecord(file)
+				if record == nil {
+					break
+				}
+				if !record.CheckCRC() {
+					continue
+				}
+				if wal.LastRecord == nil {
+					wal.Memtable.Add(record)
+					continue
+				}
+				if record.GetTimeStamp() > wal.LastRecord.GetTimeStamp() {
+					wal.Memtable.Add(record)
+					continue
+				}
+
+			}
 		}
 	}
 
