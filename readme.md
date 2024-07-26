@@ -6,6 +6,3 @@ Ucesnici:
     Dušan Đorđević - dusan
     Stefan Pejinović - stefan
     Rade Pejanović - rade
-
-PRAVILA:
-    CamelCase notacija
